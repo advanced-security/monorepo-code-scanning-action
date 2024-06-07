@@ -1,0 +1,99 @@
+name: 'Changes'
+description: 'Find changes in the PR that affect the defined projects and prepare the scan matrix'
+inputs:
+  variables:
+    description: 'YAML string of variables to replace in an XML build file (optional)'
+    required: false
+  build-xml:
+    description: 'Path to the XML file that defines the projects to build (optional)'
+    required: false
+
+runs:
+  using: 'composite'
+  outputs:
+    matrix: ${{ steps.build-matrix.outputs.result }}
+  steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    - name: Install Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    # TODO: pin and ship node_modules
+    - name: Install npm dependencies
+      run: npm install xml2js yaml
+      shell: bash
+
+    - name: Read projects JSON
+      id: read-projects
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs')
+          const projects = fs.readFileSync('.github/projects.json', 'utf8')
+          return projects
+
+    - name: Process projects XML into JSON
+      id: build-projects
+      if: failure()
+      uses: actions/github-script@v7
+      env:
+        filename: ${{ inputs.build-xml }}
+      with:
+        result-encoding: string
+        script: |
+          const script = require('.github/scripts/build-projects-from-xml.js')
+          return script(github, context, core)
+
+    - name: Debug build projects
+      run: echo "${result}"
+      shell: bash
+      env:
+        result: ${{ toJson(steps.build-projects.outputs) }}
+
+    - name: Build filters
+      id: build-filters
+      uses: actions/github-script@v7
+      env: 
+        projects: ${{ steps.read-projects.outputs.result || steps.build-projects.outputs.projects }}
+      with:
+        result-encoding: string
+        script: |
+          const script = require('.github/scripts/build-filters.js')
+          return script(github, context, core)
+
+    - name: Debug build filters
+      run: echo "${result}"
+      shell: bash
+      env:
+        result: ${{ toJson(steps.build-filters.outputs) }}
+
+    - name: Filter projects by changes in the PR
+      id: filter
+      uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 #v3.0.2
+      with:
+        filters: ${{ steps.build-filters.outputs.result }}
+
+    - name: Debug filter result
+      run: echo "${result}"
+      shell: bash
+      env:
+        result: ${{ toJson(steps.filter.outputs) }}
+
+    - name: Build matrix
+      uses: actions/github-script@v7
+      env:
+        filters: ${{ toJson(steps.filter.outputs) }}
+        projects: ${{ steps.read-projects.outputs.result || steps.build-projects.outputs.projects }}
+      with:
+        script: |
+          const script = require('.github/scripts/build-matrix.js')
+          return script(github, context, core)
+
+    - name: Debug matrix
+      run: echo "${result}"
+      shell: bash
+      env:
+        result: ${{ toJson(steps.build-matrix.outputs) }}

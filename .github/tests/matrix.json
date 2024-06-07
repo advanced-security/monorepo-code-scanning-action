@@ -1,0 +1,13 @@
+{
+  projects: [
+    {
+      name: 'Project1',
+      paths: [Array],
+      sparse_checkout: 'src/FolderA\nsrc/FolderB',
+      codeql_config: 'paths:\n  - src/FolderA\n  - src/FolderB',
+      languages: [Array]
+    }
+  ],
+  length: 1,
+  languages: [ 'csharp' ]
+}
