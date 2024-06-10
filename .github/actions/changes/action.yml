@@ -7,6 +7,10 @@ inputs:
   build-xml:
     description: 'Path to the XML file that defines the projects to build (optional)'
     required: false
+  projects-json:
+    description: 'Path to the JSON file that defines the projects to build (optional)'
+    required: false
+    default: '.github/projects.json'
 
 runs:
   using: 'composite'
@@ -29,10 +33,12 @@ runs:
     - name: Read projects JSON
       id: read-projects
       uses: actions/github-script@v7
+      env:
+        filename: ${{ inputs.projects-json }}
       with:
         script: |
           const fs = require('fs')
-          const projects = fs.readFileSync('.github/projects.json', 'utf8')
+          const projects = fs.readFileSync(process.env('filename'), 'utf8')
           return projects
 
     - name: Process projects XML into JSON

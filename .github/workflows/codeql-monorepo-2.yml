@@ -1,0 +1,61 @@
+# This workflow determines which sub projects of a monorepo are affected by a PR, and then runs CodeQL analysis on those projects.
+#
+# The specific language and paths affected are passed to the CodeQL analysis, along with a custom analysis workflow if one is provided.
+#
+# For TypeScript/JavaScript, Python, and Ruby, and when using 'build-mode: none' for Java and C#, you can let the CodeQL Action handle the "build" step,
+# and only target the project that is being changed by the PR.
+#
+# For Kotlin, Swift and C/C++, or when not using 'build-mode: none' for Java and C#, you will need to manually build the project,
+# in a way that you can define in the optional custom analysis workflow.
+#
+# If you want to specifiy custom queries, you can do so in the custom analysis workflow.
+#
+# You can find an example of what that looks like in this repository at .github/workflows/custom-codeql-analysis.yml
+
+name: "CodeQL monorepo"
+
+on:
+  pull_request:
+    branches: ["main"]
+  schedule:
+    - cron: "39 18 * * 6"
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      contents: read
+    steps:
+      - name: Spot changes to projects
+        id: changes
+        uses: ./changes/
+        with:
+          variables: |
+            FolderADir: src/FolderA
+            FolderBDir: src/FolderB
+            FolderCDir: src/FolderC
+          build-xml: build-projects.xml
+
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: changes
+    steps:
+      - name: Analyze code
+        uses: ./analyze/
+        with:
+          projects: ${{ needs.changes.outputs.projects }}
+        # custom-analysis: ./.github/workflows/custom-codeql-analysis.yml
+
+  republish:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    needs: changes
+    steps:
+      - name: Republish results
+        uses: ./republish/
+        with:
+          projects: ${{ needs.analyze.outputs.projects }}

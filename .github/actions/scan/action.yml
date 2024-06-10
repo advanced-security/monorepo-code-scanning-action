@@ -1,61 +1,50 @@
-
-name: Analyze
+name: Scan
 description: 'Analyze a project in a monorepo with CodeQL'
 inputs:
-  sparse-checkout: 
-    description: 'Sparse checkout paths for the repository'
+  projects:
+    description: 'Matrix of projects to analyze'
     required: true
-  language: 
-    description: 'Language to analyze'
-    required: true
-  codeql-config:
-    description: 'CodeQL configuration'
-    required: true
-  name:
-    description: 'Name of the project'
-    required: true
+    type: object
+  custom-analysis:
+    description: 'Custom analysis to run'
+    required: false
+    type: string
 
-steps:
-  - name: Checkout repository
-    uses: actions/checkout@v4
-    with:
-      sparse-checkout: ${{ inputs.sparse_checkout }}
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      matrix:
+        project: ${{ inputs.projects }}
 
-  # Initializes the CodeQL tools for scanning.
-  - name: Initialize CodeQL
-    uses: github/codeql-action/init@v3
-    with:
-      languages: ${{ inputs.language }}
-      build-mode: none
-      # The "paths"/"paths-ignore" fields of the config only have effect for TypeScript/JavaScript, Python, and Ruby, and when using 'build-mode: none' for Java and C#
-      config: ${{ inputs.codeql_config }}
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: ${{ project.sparse_checkout }}
 
-      # If you wish to specify custom queries, you can do so here or in a config file.
-      # config-file: ${{ matrix.project.path }}/.github/codeql-config.yml
+    # Initializes the CodeQL tools for scanning
+    - name: Initialize CodeQL (default analysis)
+      # if we don't have a custom analysis workflow
+      if: ${{ !inputs.custom-analysis }} 
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.project.language }}
+        build-mode: none
+        config: ${{  matrix.project.codeql_config }}
 
-      # If you wish to specify custom queries, you can do so here or in a config file.
-      # By default, queries listed here will override any specified in a config file.
-      # Prefix the list here with "+" to use these queries and those in the config file.
+    - name: Initialize CodeQL (custom analysis)
+      # if we have a custom analysis workflow, so we run it, with the inputs we have in this matrix
+      if: ${{ inputs.custom-analysis }}
+      uses: ${{ inputs.custom-analysis }}
+      with:
+        language: ${{  matrix.project.language }}
+        codeql-config: ${{  matrix.project.codeql_config }}
+        name: ${{  matrix.project.name }}
 
-      # For more details on CodeQL's query packs, refer to: https://docs.github.com/en/code-security/code-scanning/automatically-scanning-your-code-for-vulnerabilities-and-errors/configuring-code-scanning#using-queries-in-ql-packs
-      # queries: security-extended,security-and-quality
-
-  # Autobuild attempts to build any compiled languages (C/C++, C#, Go, Java, or Swift).
-  # If this step fails, then you should remove it and run the build manually (see below)
-  # - name: Autobuild
-  #  uses: github/codeql-action/autobuild@v3
-
-  # ℹ️ Command-line programs to run using the OS shell.
-  # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
-
-  #   If the Autobuild fails above, remove it and uncomment the following three lines.
-  #   modify them (or add more) to build your code if your project, please refer to the EXAMPLE below for guidance.
-
-  # - run: |
-  #     echo "Run, Build Application using script"
-  #     ./location_of_script_within_repo/buildscript.sh
-
-  - name: Perform CodeQL Analysis
-    uses: github/codeql-action/analyze@v3
-    with:
-      category: "/language:$(inputs.language);project:$(inputs.name)"
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:$(matrix.project.language);project:$(matrix.project.name)"
