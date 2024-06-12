@@ -11,11 +11,12 @@ inputs:
     description: 'Path to the JSON file that defines the projects to build (optional)'
     required: false
     default: '.github/projects.json'
-
+outputs:
+  projects:
+    description: Matrix of the projects to analyze
+    value: ${{ steps.build-matrix.outputs.result }}
 runs:
   using: 'composite'
-  outputs:
-    matrix: ${{ steps.build-matrix.outputs.result }}
   steps:
     - name: Checkout repo
       uses: actions/checkout@v4
