@@ -26,6 +26,8 @@ jobs:
     permissions:
       pull-requests: read
       contents: read
+    outputs:
+      projects: ${{ steps.changes.outputs.projects }}
     steps:
       - name: Checkout local Action
         uses: actions/checkout@v4
@@ -68,7 +70,7 @@ jobs:
       - name: Republish results
         uses: ./.github/actions/republish-sarif/
         with:
-          projects: ${{ needs.scan.outputs.projects }}
+          projects: ${{ needs.changes.outputs.projects }}
 
   # replay:
   #   runs-on: ubuntu-latest
@@ -79,4 +81,4 @@ jobs:
   #     - name: Replay CodeQL checks
   #       uses: ./.github/actions/replay-checks/
   #       with:
-  #         projects: ${{ needs.analyze.outputs.projects }}
+  #         projects: ${{ needs.changes.outputs.projects }}
