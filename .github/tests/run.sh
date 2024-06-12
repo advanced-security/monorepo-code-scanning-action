@@ -12,3 +12,6 @@ projects=$(cat projects.json) node run-build-filters.js > filters.yml
 # assume the filters Action produces the output in `filters_output.json`
 
 filters=$(cat filters_output.json) projects=$(cat projects.json) node run-build-matrix.js > matrix.json
+
+# run the replay checks test
+node run-replay-checks.js

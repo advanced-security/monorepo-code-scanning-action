@@ -56,6 +56,17 @@ jobs:
     needs: changes
     steps:
       - name: Republish results
-        uses: ./republish/
+        uses: ./republish-sarif/
         with:
           projects: ${{ needs.analyze.outputs.projects }}
+
+  # replay:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     security-events: write
+  #   needs: changes
+  #   steps:
+  #     - name: Replay CodeQL checks
+  #       uses: ./replay-checks/
+  #       with:
+  #         projects: ${{ needs.analyze.outputs.projects }}
