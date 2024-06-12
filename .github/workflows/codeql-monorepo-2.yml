@@ -32,7 +32,7 @@ jobs:
 
       - name: Spot changes to projects
         id: changes
-        uses: ./changes/
+        uses: ./.github/actions/changes/
         with:
           variables: |
             FolderADir: src/FolderA
