@@ -39,7 +39,7 @@ runs:
       with:
         script: |
           const fs = require('fs')
-          const projects = fs.readFileSync(process.env('filename'), 'utf8')
+          const projects = fs.readFileSync(process.env.filename, 'utf8')
           return projects
 
     - name: Process projects XML into JSON
