@@ -11,8 +11,7 @@ function run(github, context, core) {
   }
 
   if (!variables) {
-    if (core) { core.setFailed("variables is required"); }
-    return;
+    if (core) { core.warn("Setting the 'variables' inputs is recommended, to properly resolve paths in the build XML that are substituted with a variable of the form $(VAR)"); }
   }
 
   const parsed_variables = variables ? yaml.parse(variables) : {};
