@@ -1,12 +1,8 @@
 name: Scan
 description: 'Analyze a project in a monorepo with CodeQL'
 inputs:
-  projects:
-    description: 'Matrix of projects to analyze'
-    required: true
-    type: object
   custom-analysis:
-    description: 'Custom analysis to run'
+    description: 'Custom analysis to run (optional)'
     required: false
     type: string
 
@@ -15,15 +11,13 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-    strategy:
-      matrix:
-        project: ${{ inputs.projects }}
-
+runs:
+  using: 'composite'
   steps:
     - name: Checkout repository
       uses: actions/checkout@v4
       with:
-        sparse-checkout: ${{ project.sparse_checkout }}
+        sparse-checkout: ${{ matrix.project.sparse_checkout }}
 
     # Initializes the CodeQL tools for scanning
     - name: Initialize CodeQL (default analysis)
@@ -36,7 +30,7 @@ jobs:
         config: ${{  matrix.project.codeql_config }}
 
     - name: Initialize CodeQL (custom analysis)
-      # if we have a custom analysis workflow, so we run it, with the inputs we have in this matrix
+      # if we have a custom analysis workflow, we run it, with the inputs we have in this matrix
       if: ${{ inputs.custom-analysis }}
       uses: ${{ inputs.custom-analysis }}
       with:

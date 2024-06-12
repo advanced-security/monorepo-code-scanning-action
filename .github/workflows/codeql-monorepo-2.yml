@@ -45,14 +45,15 @@ jobs:
     permissions:
       contents: read
     needs: changes
+    strategy:
+      matrix:
+        project: ${{ needs.changes.outputs.projects }}
     steps:
       - name: Checkout local Action
         uses: actions/checkout@v4
 
       - name: Analyze code
         uses: ./.github/actions/scan/
-        with:
-          projects: ${{ needs.changes.outputs.projects }}
         # custom-analysis: ./.github/workflows/custom-codeql-analysis.yml
 
   republish:
