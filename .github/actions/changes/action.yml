@@ -32,18 +32,23 @@ runs:
 
     - name: Read projects JSON
       id: read-projects
+      if: ${{ inputs.projects-json }}
       uses: actions/github-script@v7
       env:
         filename: ${{ inputs.projects-json }}
       with:
         script: |
           const fs = require('fs')
-          const projects = fs.readFileSync(process.env.filename, 'utf8')
-          return projects
+          try {
+            const projects = fs.readFileSync(process.env.filename, 'utf8')
+            return projects
+          } catch (error) {
+            core.setFailed(`Failed to read projects JSON: ${error}`)
+          }
 
     - name: Process projects XML into JSON
       id: build-projects
-      if: failure()
+      if: ( failure() || ${{ !inputs.projects-json}} ) && ${{ inputs.build-xml }}
       uses: actions/github-script@v7
       env:
         filename: ${{ inputs.build-xml }}
