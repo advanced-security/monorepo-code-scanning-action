@@ -61,6 +61,7 @@ jobs:
   republish:
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       security-events: write
     needs: changes
     steps:
