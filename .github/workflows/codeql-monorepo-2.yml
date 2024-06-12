@@ -27,6 +27,9 @@ jobs:
       pull-requests: read
       contents: read
     steps:
+      - name: Checkout local Action
+        uses: actions/checkout@v4
+
       - name: Spot changes to projects
         id: changes
         uses: ./changes/
@@ -37,14 +40,17 @@ jobs:
             FolderCDir: src/FolderC
           build-xml: build-projects.xml
 
-  analyze:
+  scan:
     runs-on: ubuntu-latest
     permissions:
       contents: read
     needs: changes
     steps:
+      - name: Checkout local Action
+        uses: actions/checkout@v4
+
       - name: Analyze code
-        uses: ./analyze/
+        uses: ./.github/actions/scan/
         with:
           projects: ${{ needs.changes.outputs.projects }}
         # custom-analysis: ./.github/workflows/custom-codeql-analysis.yml
@@ -55,10 +61,13 @@ jobs:
       security-events: write
     needs: changes
     steps:
+      - name: Checkout local Action
+        uses: actions/checkout@v4
+
       - name: Republish results
-        uses: ./republish-sarif/
+        uses: ./.github/actions/republish-sarif/
         with:
-          projects: ${{ needs.analyze.outputs.projects }}
+          projects: ${{ needs.scan.outputs.projects }}
 
   # replay:
   #   runs-on: ubuntu-latest
@@ -67,6 +76,6 @@ jobs:
   #   needs: changes
   #   steps:
   #     - name: Replay CodeQL checks
-  #       uses: ./replay-checks/
+  #       uses: ./.github/actions/replay-checks/
   #       with:
   #         projects: ${{ needs.analyze.outputs.projects }}
