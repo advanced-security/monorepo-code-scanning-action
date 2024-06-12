@@ -28,12 +28,12 @@ function run(github, context, core) {
   }
 
   for (const [language, details] of Object.entries(projects)) {
-    const globs = globs[language];
+    const lang_globs = globs[language];
 
     for (const [project, paths] of Object.entries(details)) {
       for (const path of paths) {
         filters[project] ??= [];
-        filters[project].push(...globs.map((glob) => `${path}/${glob}`));
+        filters[project].push(...lang_globs.map((glob) => `${path}/${glob}`));
       }
     }
   }
