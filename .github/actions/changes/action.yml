@@ -10,7 +10,6 @@ inputs:
   projects-json:
     description: 'Path to the JSON file that defines the projects to build (optional)'
     required: false
-    default: '.github/projects.json'
 outputs:
   projects:
     description: Matrix of the projects to analyze
