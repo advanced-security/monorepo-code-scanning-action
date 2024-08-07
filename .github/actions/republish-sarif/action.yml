@@ -20,6 +20,7 @@ runs:
       if: steps.pr
       run: |
         echo "${{ toJson(inputs.projects) }}"
+      shell: bash
 
     - name: Checkout script
       if: steps.pr
