@@ -40,11 +40,19 @@ function run(github, context, core) {
     })
   );
 
-  return {
+  core.debug("Projects matrix:");
+  core.debug(JSON.stringify(projects_matrix));
+
+  const result = {
     projects: Object.values(projects_matrix),
     length: Object.keys(projects_matrix).length,
     languages: ["csharp"] // TODO: don't hardcode this
   };
+
+  core.debug("Result:");
+  core.debug(JSON.stringify(result));
+
+  return result;
 }
 
 module.exports = (github, context, core) => {
