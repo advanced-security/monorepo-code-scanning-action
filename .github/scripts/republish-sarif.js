@@ -14,7 +14,15 @@ async function run(github, context, core) {
     "java-kotlin",
     "",
   ];
-  const scannedLanguages = JSON.parse(process.env.languages);
+
+  let scannedLanguages;
+  try {
+    scannedLanguages = JSON.parse(process.env.languages);
+  } catch (error) {
+    console.error("Failed to parse languages, JSON error %s: \n\n%s", error, process.env.languages);
+    return;
+  }
+
   const notScannedLanguages = languages.filter(
     (language) => !scannedLanguages.includes(language)
   );
@@ -28,6 +36,7 @@ async function run(github, context, core) {
       ref: context.payload.pull_request.base.ref,
     });
   } catch (error) {
+    console.error("Failed to list recent analyses: %s", error);
     return;
   }
 
