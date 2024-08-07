@@ -34,7 +34,7 @@ function run(github, context, core) {
           paths: paths,
           sparse_checkout: paths.join("\n"),
           codeql_config: "paths:\n  - " + paths.join("\n  - "),
-          languages: ["csharp"]
+          languages: ["csharp"] // TODO: don't hardcode this
         },
       ];
     })
@@ -43,7 +43,7 @@ function run(github, context, core) {
   return {
     projects: Object.values(projects_matrix),
     length: Object.keys(projects_matrix).length,
-    languages: ["csharp"]
+    languages: ["csharp"] // TODO: don't hardcode this
   };
 }
 

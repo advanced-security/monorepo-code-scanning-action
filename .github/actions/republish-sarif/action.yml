@@ -1,8 +1,8 @@
 name: Republish
 description: 'Republish SARIF for languages that were not scanned in this PR'
 inputs:
-  languages:
-    description: 'Languages scanned in this PR'
+  projects:
+    description: 'Projects scanned in this PR'
     required: true
     type: object
 
@@ -25,7 +25,7 @@ runs:
     - uses: actions/github-script@v7
       if: steps.pr
       env:
-        languages: ${{ inputs.languages }}
+        languages: ${{ inputs.projects.languages }}
       with:
         script: |
           const script = require('.github/scripts/republish-sarif.js')
