@@ -16,6 +16,11 @@ runs:
         echo "::set-output In PR"
       shell: bash
 
+    - name: Debug output
+      if: steps.pr
+      run: |
+        echo "${{ toJson(inputs.projects) }}"
+
     - name: Checkout script
       if: steps.pr
       uses: actions/checkout@v4
@@ -26,7 +31,7 @@ runs:
     - uses: actions/github-script@v7
       if: steps.pr
       env:
-        languages: ${{ inputs.projects.languages }}
+        languages: ${{ toJson(inputs.projects.languages) }}
       with:
         script: |
           const script = require('.github/scripts/republish-sarif.js')
