@@ -23,6 +23,11 @@ async function run(github, context, core) {
     return;
   }
 
+  if (!scannedLanguages) {
+    console.error("Failed to parse languages, no languages found: %s", scannedLanguages);
+    return;
+  }
+
   const notScannedLanguages = languages.filter(
     (language) => !scannedLanguages.includes(language)
   );
