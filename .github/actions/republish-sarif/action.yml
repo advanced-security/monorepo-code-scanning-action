@@ -11,7 +11,8 @@ runs:
   steps:
     - name: Check for PR
       id: pr
-      if: github.event_name == 'pull_request'
+      run: |
+        echo "::set-output In PR"
 
     - name: Checkout script
       if: steps.pr
