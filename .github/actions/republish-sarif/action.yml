@@ -13,6 +13,7 @@ runs:
       id: pr
       run: |
         echo "::set-output In PR"
+      shell: bash
 
     - name: Checkout script
       if: steps.pr
