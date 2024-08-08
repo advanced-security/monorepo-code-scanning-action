@@ -71,7 +71,7 @@ jobs:
       - name: Republish results
         uses: ./.github/actions/republish-sarif/
         with:
-          projects: ${{ needs.changes.outputs.projects }}
+          projects: ${{ toJson(needs.changes.outputs.projects) }}
 
   # replay:
   #   runs-on: ubuntu-latest
