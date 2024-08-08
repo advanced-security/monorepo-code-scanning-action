@@ -56,7 +56,7 @@ jobs:
 
       - name: Analyze code
         uses: ./.github/actions/scan/
-        # custom-analysis: ./.github/workflows/custom-codeql-analysis.yml
+        # custom-analysis: true
 
   republish:
     runs-on: ubuntu-latest
@@ -71,7 +71,7 @@ jobs:
       - name: Republish results
         uses: ./.github/actions/republish-sarif/
         with:
-          projects: ${{ toJson(needs.changes.outputs.projects) }}
+          projects: ${{ needs.changes.outputs.projects }}
 
   # replay:
   #   runs-on: ubuntu-latest
