@@ -23,8 +23,6 @@ async function run(github, context, core) {
     return;
   }
 
-  core.log(projects);
-
   const scannedLanguages = projects.languages;
 
   if (!scannedLanguages) {
