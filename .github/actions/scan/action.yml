@@ -37,10 +37,3 @@ runs:
       uses: github/codeql-action/analyze@v3
       with:
         category: "/language:$(matrix.project.language);project:$(matrix.project.name)"
-
-    # To keep Actions cleanup working cleanly
-    - name: Checkout Action file
-      uses: actions/checkout@v4
-      with:
-        sparse-checkout: .github/actions/scan/action.yml
-        sparse-checkout-cone-mode: false
