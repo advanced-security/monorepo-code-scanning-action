@@ -25,5 +25,8 @@ filters=$(cat filters_output.json) projects=$(cat projects.json) node run-build-
 echo "Output of build-matrix.js"
 cat matrix.json
 
+# run the republish test
+projects=$(cat matrix.json) node run-republish.js
+
 # run the replay checks test
 languages=$(jq '.languages' < matrix.json) node run-replay-checks.js

@@ -14,9 +14,24 @@ async function run(github, context, core) {
     "java-kotlin",
     "",
   ];
-  const scannedLanguages = JSON.parse(process.env.languages);
-  const notScannedLanguages = languages.filter(
-    (language) => !scannedLanguages.includes(language)
+
+  let projects;
+  try {
+    projects = JSON.parse(process.env.projects);
+  } catch (error) {
+    console.error("Failed to parse projects, JSON error %s: \n\n%s", error, process.env.projects);
+    return;
+  }
+
+  const scannedLanguages = projects.languages;
+
+  if (!scannedLanguages) {
+    console.error("Failed to parse languages, no languages found: %s", scannedLanguages);
+    return;
+  }
+
+  const notScannedLanguages = scannedLanguages.filter(
+    language => !scannedLanguages.includes(language)
   );
 
   // find the latest checks for the base branch, for each CodeQL language

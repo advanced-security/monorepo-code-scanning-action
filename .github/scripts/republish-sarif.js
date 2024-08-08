@@ -15,13 +15,15 @@ async function run(github, context, core) {
     "",
   ];
 
-  let scannedLanguages;
+  let projects;
   try {
-    scannedLanguages = JSON.parse(process.env.languages);
+    projects = JSON.parse(process.env.projects);
   } catch (error) {
-    console.error("Failed to parse languages, JSON error %s: \n\n%s", error, process.env.languages);
+    console.error("Failed to parse projects, JSON error %s: \n\n%s", error, process.env.projects);
     return;
   }
+
+  const scannedLanguages = projects.languages;
 
   if (!scannedLanguages) {
     console.error("Failed to parse languages, no languages found: %s", scannedLanguages);
