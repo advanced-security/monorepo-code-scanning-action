@@ -6,11 +6,6 @@ inputs:
     required: false
     type: string
 
-jobs:
-  analyze:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
 runs:
   using: 'composite'
   steps:
