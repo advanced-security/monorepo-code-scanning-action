@@ -19,6 +19,5 @@ const context = {
     }
 }
 
-process.env.languages = JSON.stringify(["csharp"]);
 const script = require('../scripts/republish-sarif.js');
 const result = script(github, context, core);

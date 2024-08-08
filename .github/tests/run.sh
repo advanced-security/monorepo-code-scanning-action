@@ -29,4 +29,4 @@ cat matrix.json
 projects=$(cat matrix.json) node run-republish.js
 
 # run the replay checks test
-languages=$(jq '.languages' < matrix.json) node run-replay-checks.js
+projects=$(cat matrix.json) node run-replay-checks.js
