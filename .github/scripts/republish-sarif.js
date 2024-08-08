@@ -19,14 +19,17 @@ async function run(github, context, core) {
   try {
     projects = JSON.parse(process.env.projects);
   } catch (error) {
-    console.error("Failed to parse projects, JSON error %s: \n\n%s", error, process.env.projects);
+    core.error("Failed to parse projects, JSON error (%s): \n\n%s", error, process.env.projects);
     return;
   }
+
+  core.log(projects);
 
   const scannedLanguages = projects.languages;
 
   if (!scannedLanguages) {
-    console.error("Failed to parse languages, no languages found: %s", scannedLanguages);
+    core.error("Failed to parse languages, no languages found: %s", scannedLanguages);
+    core.error(projects);
     return;
   }
 
@@ -43,7 +46,7 @@ async function run(github, context, core) {
       ref: context.payload.pull_request.base.ref,
     });
   } catch (error) {
-    console.error("Failed to list recent analyses: %s", error);
+    core.error("Failed to list recent analyses: %s", error);
     return;
   }
 
@@ -55,7 +58,7 @@ async function run(github, context, core) {
   );
 
   if (analysesToDownload.length == 0) {
-    console.warning("No analyses to download found, exiting");
+    core.warning("No analyses to download found, exiting");
   }
 
   fs.mkdirSync("sarif");
@@ -73,7 +76,7 @@ async function run(github, context, core) {
         `sarif/${analysis.category}.sarif`,
         JSON.stringify(sarif.data)
       );
-      console.log(`Downloaded SARIF for ${analysis.category}`);
+      core.log(`Downloaded SARIF for ${analysis.category}`);
     }
   });
 }

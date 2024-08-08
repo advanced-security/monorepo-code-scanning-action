@@ -19,7 +19,7 @@ async function run(github, context, core) {
   try {
     projects = JSON.parse(process.env.projects);
   } catch (error) {
-    console.error("Failed to parse projects, JSON error %s: \n\n%s", error, process.env.projects);
+    console.error("Failed to parse projects, JSON error (%s): \n\n%s", error, process.env.projects);
     return;
   }
 
