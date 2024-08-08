@@ -17,36 +17,62 @@ function run(github, context, core) {
 
   const projects = JSON.parse(raw_projects);
 
+  core.debug("Changes:");
+  core.debug(JSON.stringify(changes));
+  core.debug("Projects:");
+  core.debug(JSON.stringify(projects));
+
+  core.debug(Object.entries(projects));
+
+  const projects_to_scan = {};
+
   // Filter out projects that don't have changes
-  const projects_to_scan = Object.fromEntries(
-    Object.entries(projects).filter((entry) => {
-      const [project, _] = entry;
-      return changes.includes(project);
-    })
-  );
+  for (const [language, lang_projects] of Object.entries(projects)) {
+    core.debug("Language: " + language);
+    core.debug("Projects: " + JSON.stringify(lang_projects));
 
-  const projects_matrix = Object.fromEntries(
-    Object.entries(projects_to_scan).map(([name, paths]) => {
-      return [
-        name,
-        {
-          name: name,
-          paths: paths,
-          sparse_checkout: paths.join("\n"),
-          codeql_config: "paths:\n  - " + paths.join("\n  - "),
-          languages: ["csharp"] // TODO: don't hardcode this
-        },
-      ];
-    })
-  );
+    projects_to_scan[language] = Object.fromEntries(
+        Object.entries(lang_projects).filter((project) => {
+          const [name, paths] = project;
+          core.debug("Project: " + name);
+          core.debug("Paths: " + JSON.stringify(paths));
+          return changes.includes(name);
+        })
+    );
+  }
 
-  core.debug("Projects matrix:");
-  core.debug(JSON.stringify(projects_matrix));
+  core.debug("Projects to scan:");
+  core.debug(JSON.stringify(projects_to_scan));
+
+  const filtered_languages = new Set();
+  const filtered_projects = [];
+
+  for (const [language, lang_projects] of Object.entries(projects_to_scan)) {
+    core.debug("Language: " + language);
+    core.debug("Projects: " + JSON.stringify(lang_projects));
+
+    filtered_languages.add(language);
+
+    for (const [name, paths] of Object.entries(lang_projects)) {
+      const project = {
+        name: name,
+        paths: Array.from(paths),
+        sparse_checkout: Array.from(paths).join("\n"),
+        codeql_config: "paths:\n  - " + Array.from(paths).join("\n  - "),
+        language: language
+      };
+
+      filtered_projects.push(project);
+    }
+  }
+
+  core.debug("Projects list:");
+  core.debug(JSON.stringify(filtered_projects));
 
   const result = {
-    projects: Object.values(projects_matrix),
-    length: Object.keys(projects_matrix).length,
-    languages: ["csharp"] // TODO: don't hardcode this
+    projects: Array.from(filtered_projects),
+    length: filtered_projects.length,
+    languages: Array.from(filtered_languages)
   };
 
   core.debug("Result:");
