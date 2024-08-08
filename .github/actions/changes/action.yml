@@ -25,7 +25,7 @@ runs:
       with:
         node-version: '20'
 
-    # TODO: pin to versions? Ship node_modules?
+    # TODO: pin to versions? Ship node_modules? Make cross platform?
     - name: Install npm dependencies
       run: npm install xml2js yaml
       shell: bash

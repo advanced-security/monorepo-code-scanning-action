@@ -58,28 +58,31 @@ jobs:
         uses: ./.github/actions/scan/
         # custom-analysis: true
 
-  republish:
+  # republish:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     security-events: write
+  #   needs: changes
+  #   steps:
+  #     - name: Checkout local Action
+  #       uses: actions/checkout@v4
+
+  #     - name: Republish results
+  #       uses: ./.github/actions/republish-sarif/
+  #       with:
+  #         projects: ${{ needs.changes.outputs.projects }}
+
+  replay:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       security-events: write
     needs: changes
     steps:
       - name: Checkout local Action
         uses: actions/checkout@v4
 
-      - name: Republish results
-        uses: ./.github/actions/republish-sarif/
+      - name: Replay CodeQL checks
+        uses: ./.github/actions/replay-checks/
         with:
           projects: ${{ needs.changes.outputs.projects }}
-
-  # replay:
-  #   runs-on: ubuntu-latest
-  #   permissions:
-  #     security-events: write
-  #   needs: changes
-  #   steps:
-  #     - name: Replay CodeQL checks
-  #       uses: ./.github/actions/replay-checks/
-  #       with:
-  #         projects: ${{ needs.changes.outputs.projects }}
