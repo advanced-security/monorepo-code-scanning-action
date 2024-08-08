@@ -19,18 +19,14 @@ async function run(github, context, core) {
   try {
     projects = JSON.parse(process.env.projects);
   } catch (error) {
-    core.error("Failed to parse projects, JSON error (%s): \n\n%s", error, process.env.projects);
+    core.error(`Failed to parse projects, JSON error (${error}): \n\n${process.env.projects}`);
     return;
   }
 
   const scannedLanguages = projects.languages;
 
   if (!scannedLanguages) {
-    core.error("Failed to parse languages, no languages found: %s", scannedLanguages);
-    core.error(projects.languages);
-    core.error(projects.projects);
-    core.error(projects.length);
-    core.error(projects);
+    core.error(`Failed to parse languages, no languages found: ${scannedLanguages}`);
     return;
   }
 
@@ -47,7 +43,7 @@ async function run(github, context, core) {
       ref: context.payload.pull_request.base.ref,
     });
   } catch (error) {
-    core.error("Failed to list recent analyses: %s", error);
+    core.error(`Failed to list recent analyses: ${error}`);
     return;
   }
 
