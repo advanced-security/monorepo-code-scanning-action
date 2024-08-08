@@ -2,9 +2,9 @@ name: Scan
 description: 'Analyze a project in a monorepo with CodeQL'
 inputs:
   custom-analysis:
-    description: 'Custom analysis to run (optional)'
+    description: 'Run custom analysis (optional)'
     required: false
-    type: string
+    type: boolean
 
 runs:
   using: 'composite'
@@ -17,7 +17,7 @@ runs:
     # Initializes the CodeQL tools for scanning
     - name: Initialize CodeQL (default analysis)
       # if we don't have a custom analysis workflow
-      if: ${{ !inputs.custom-analysis }} 
+      if: ${{ !inputs.custom-analysis }}
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.project.language }}
@@ -27,7 +27,7 @@ runs:
     - name: Initialize CodeQL (custom analysis)
       # if we have a custom analysis workflow, we run it, with the inputs we have in this matrix
       if: ${{ inputs.custom-analysis }}
-      uses: ${{ inputs.custom-analysis }}
+      uses: ./.github/workflows/codeql-custom-analysis.yml
       with:
         language: ${{  matrix.project.language }}
         codeql-config: ${{  matrix.project.codeql_config }}

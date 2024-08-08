@@ -27,6 +27,9 @@ async function run(github, context, core) {
 
   if (!scannedLanguages) {
     core.error("Failed to parse languages, no languages found: %s", scannedLanguages);
+    core.error(projects.languages);
+    core.error(projects.projects);
+    core.error(projects.length);
     core.error(projects);
     return;
   }
