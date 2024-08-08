@@ -18,8 +18,12 @@ runs:
 
     - name: Debug output
       if: steps.pr
+      env: 
+        projects: ${{ inputs.projects }}
+        languages: ${{ toJson(fromJson(inputs.projects).languages) }}
       run: |
-        echo "${{ toJson(fromJson(inputs.projects)) }}"
+        echo "$projects"
+        echo "$languages"
       shell: bash
 
     - name: Checkout script
