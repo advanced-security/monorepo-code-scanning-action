@@ -19,5 +19,5 @@ const context = {
     }
 }
 
-const script = require('../scripts/republish-sarif.js');
+const script = require('../republish-sarif/republish-sarif.js');
 const result = script(github, context, core);

@@ -20,5 +20,5 @@ const context = {
 }
 
 process.env.languages = JSON.stringify(["csharp"]);
-const script = require('../scripts/replay-checks.js');
+const script = require('../replay-checks/replay-checks.js');
 const result = script(github, context, core);

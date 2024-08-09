@@ -58,7 +58,7 @@ runs:
         script: |
           const path = require('node:path')
           const action_path = process.env.GITHUB_ACTION_PATH
-          const script = require(path.join(action_path, 'scripts', 'build-projects-from-xml.js'))
+          const script = require(path.join(action_path, 'build-projects-from-xml.js'))
           return script(github, context, core)
 
     - name: Debug build projects
@@ -77,7 +77,7 @@ runs:
         script: |
           const path = require('node:path')
           const action_path = process.env.GITHUB_ACTION_PATH
-          const script = require(path.join(action_path, 'scripts', 'build-filters.js'))
+          const script = require(path.join(action_path, 'build-filters.js'))
           return script(github, context, core)
 
     - name: Debug build filters
@@ -108,7 +108,7 @@ runs:
         script: |
           const path = require('node:path')
           const action_path = process.env.GITHUB_ACTION_PATH
-          const script = require(path.join(action_path, 'scripts', 'build-matrix.js'))
+          const script = require(path.join(action_path, 'build-matrix.js'))
           return script(github, context, core)
 
     - name: Debug matrix
