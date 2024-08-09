@@ -27,7 +27,9 @@ runs:
 
     # TODO: pin to versions? Ship node_modules? Make cross platform?
     - name: Install npm dependencies
-      run: npm install xml2js yaml
+      run: |
+        cd $GITHUB_ACTION_PATH
+        npm install xml2js yaml
       shell: bash
 
     - name: Read projects JSON
