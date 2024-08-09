@@ -17,6 +17,7 @@ runs:
           projects: ${{ inputs.projects }}
         with:
           script: |
+            const path = require('node:path')
             const action_path = process.env.GITHUB_ACTION_PATH
             const script = require(path.join(action_path, 'scripts/replay-checks.js'))
             script(github, context, core)
