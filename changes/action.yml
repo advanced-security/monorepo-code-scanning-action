@@ -57,7 +57,7 @@ runs:
         result-encoding: string
         script: |
           const action_path = process.env.GITHUB_ACTION_PATH
-          const script = require(path.join(action_path, 'scripts/build-projects-from-xml.js')
+          const script = require(path.join(action_path, 'scripts/build-projects-from-xml.js'))
           return script(github, context, core)
 
     - name: Debug build projects
@@ -75,7 +75,7 @@ runs:
         result-encoding: string
         script: |
           const action_path = process.env.GITHUB_ACTION_PATH
-          const script = require(path.join(action_path, 'scripts/build-filters.js')
+          const script = require(path.join(action_path, 'scripts/build-filters.js'))
           return script(github, context, core)
 
     - name: Debug build filters
@@ -105,11 +105,12 @@ runs:
       with:
         script: |
           const action_path = process.env.GITHUB_ACTION_PATH
-          const script = require(path.join(action_path, 'scripts/build-matrix.js')
+          const script = require(path.join(action_path, 'scripts/build-matrix.js'))
           return script(github, context, core)
 
     - name: Debug matrix
-      run: echo "${result}"
+      run: |
+        echo "${result}"
       shell: bash
       env:
         result: ${{ toJson(steps.build-matrix.outputs) }}

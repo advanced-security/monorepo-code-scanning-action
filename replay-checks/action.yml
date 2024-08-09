@@ -12,14 +12,11 @@ inputs:
     needs: changes
     if: github.event_name == 'pull_request'
     steps:
-      - name: Checkout script
-        uses: actions/checkout@v4
-        with:
-          sparse-checkout: .github/scripts/replay-checks.js
       - uses: actions/github-script@v7
         env:
           languages: ${{ inputs.languages }}
         with:
           script: |
-            const script = require('.github/scripts/replay-checks.js')
+            const action_path = process.env.GITHUB_ACTION_PATH
+            const script = require(path.join(action_path, 'scripts/replay-checks.js'))
             script(github, context, core)
