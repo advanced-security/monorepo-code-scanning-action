@@ -1,0 +1,12 @@
+Project1:
+  - src/FolderA/**/*.cs
+  - src/FolderA/**/*.csproj
+  - src/FolderA/**/*.sln
+  - src/FolderB/**/*.cs
+  - src/FolderB/**/*.csproj
+  - src/FolderB/**/*.sln
+Project2:
+  - src/FolderC/**/*.cs
+  - src/FolderC/**/*.csproj
+  - src/FolderC/**/*.sln
+

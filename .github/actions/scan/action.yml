@@ -1,0 +1,39 @@
+name: Scan
+description: 'Analyze a project in a monorepo with CodeQL'
+inputs:
+  custom-analysis:
+    description: 'Run custom analysis (optional)'
+    required: false
+    type: boolean
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout project folders to scan
+      uses: actions/checkout@v4
+      with:
+        sparse-checkout: ${{ matrix.project.sparse_checkout }}
+
+    # Initializes the CodeQL tools for scanning
+    - name: Initialize CodeQL (default analysis)
+      # if we don't have a custom analysis workflow
+      if: ${{ !inputs.custom-analysis }}
+      uses: github/codeql-action/init@v3
+      with:
+        languages: ${{ matrix.project.language }}
+        build-mode: none
+        config: ${{  matrix.project.codeql_config }}
+
+    - name: Initialize CodeQL (custom analysis)
+      # if we have a custom analysis workflow, we run it, with the inputs we have in this matrix
+      if: ${{ inputs.custom-analysis }}
+      uses: ./.github/workflows/codeql-custom-analysis.yml
+      with:
+        language: ${{  matrix.project.language }}
+        codeql-config: ${{  matrix.project.codeql_config }}
+        name: ${{  matrix.project.name }}
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v3
+      with:
+        category: "/language:$(matrix.project.language);project:$(matrix.project.name)"
