@@ -34,7 +34,7 @@ jobs:
 
       - name: Spot changes to projects
         id: changes
-        uses: ./.github/actions/changes/
+        uses: ./changes/
         with:
           variables: |
             FolderADir: src/FolderA
@@ -55,7 +55,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Analyze code
-        uses: ./.github/actions/scan/
+        uses: ./scan/
         # custom-analysis: true
 
   # republish:
@@ -69,7 +69,7 @@ jobs:
   #       uses: actions/checkout@v4
 
   #     - name: Republish results
-  #       uses: ./.github/actions/republish-sarif/
+  #       uses: ./republish-sarif/
   #       with:
   #         projects: ${{ needs.changes.outputs.projects }}
 
@@ -83,6 +83,6 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Replay CodeQL checks
-        uses: ./.github/actions/replay-checks/
+        uses: ./replay-checks/
         with:
           projects: ${{ needs.changes.outputs.projects }}
