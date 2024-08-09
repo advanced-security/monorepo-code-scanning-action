@@ -56,7 +56,8 @@ runs:
       with:
         result-encoding: string
         script: |
-          const script = require('.github/scripts/build-projects-from-xml.js')
+          const action_path = process.env.GITHUB_ACTION_PATH
+          const script = require(path.join(action_path, 'scripts/build-projects-from-xml.js')
           return script(github, context, core)
 
     - name: Debug build projects
@@ -73,7 +74,8 @@ runs:
       with:
         result-encoding: string
         script: |
-          const script = require('.github/scripts/build-filters.js')
+          const action_path = process.env.GITHUB_ACTION_PATH
+          const script = require(path.join(action_path, 'scripts/build-filters.js')
           return script(github, context, core)
 
     - name: Debug build filters
@@ -102,7 +104,8 @@ runs:
         projects: ${{ steps.read-projects.outputs.result || steps.build-projects.outputs.projects }}
       with:
         script: |
-          const script = require('.github/scripts/build-matrix.js')
+          const action_path = process.env.GITHUB_ACTION_PATH
+          const script = require(path.join(action_path, 'scripts/build-matrix.js')
           return script(github, context, core)
 
     - name: Debug matrix
