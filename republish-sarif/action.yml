@@ -32,7 +32,7 @@ runs:
         script: |
           const path = require('node:path')
           const action_path = process.env.GITHUB_ACTION_PATH
-          const script = require(path.join(action_path, 'scripts/republish-sarif.js'))
+          const script = require(path.join(action_path, 'republish-sarif.js'))
           script(github, context, core)
 
     - uses: github/codeql-action/upload-sarif@v3
