@@ -1,20 +1,20 @@
 name: Republish
 description: 'Replay CodeQL check status for languages not scanned in this PR'
 inputs:
-  languages:
-    description: 'Languages scanned in this PR'
+  projects:
+    description: 'Projects changed in this PR'
     required: true
-    type: object
+    type: string
 
-  replay-checks:
-    name: Replay CodeQL check status for languages not scanned in this PR
-    runs-on: ubuntu-latest
-    needs: changes
-    if: github.event_name == 'pull_request'
+runs:
+  using: 'composite'
+
+  steps:
     steps:
       - uses: actions/github-script@v7
+        if: github.event_name == 'pull_request'
         env:
-          languages: ${{ inputs.languages }}
+          projects: ${{ inputs.projects }}
         with:
           script: |
             const action_path = process.env.GITHUB_ACTION_PATH
