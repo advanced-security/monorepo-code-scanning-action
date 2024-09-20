@@ -1,0 +1,92 @@
+# This workflow determines which sub projects of a monorepo are affected by a PR, and then runs CodeQL analysis on those projects.
+#
+# The specific language and paths affected are passed to the CodeQL analysis, along with a custom analysis workflow if one is provided.
+#
+# For TypeScript/JavaScript, Python, and Ruby, and when using 'build-mode: none' for Java and C#, you can let the CodeQL Action handle the "build" step,
+# and only target the project that is being changed by the PR.
+#
+# For Kotlin, Swift and C/C++, or when not using 'build-mode: none' for Java and C#, you will need to manually build the project,
+# in a way that you can define in the optional custom analysis workflow.
+#
+# If you want to specifiy custom queries, you can do so in the custom analysis workflow.
+#
+# You can find an example of what that looks like in this repository at .github/workflows/custom-codeql-analysis.yml
+
+name: "CodeQL monorepo"
+
+on:
+  pull_request:
+    branches: ["main"]
+#  schedule:
+#    - cron: "39 18 * * 6"
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+      contents: read
+    outputs:
+      projects: ${{ steps.changes.outputs.projects }}
+    steps:
+      - name: Spot changes to projects
+        id: changes
+        uses: advanced-security/monorepo-code-scanning-action/changes@main
+        with:
+          # If you are using a C# build.xml file, you will need to set any variables in an inline YAML config, as shown, and reference that XML file here with the `build-xml` input
+
+          variables: |
+            FolderADir: src/FolderA
+            FolderBDir: src/FolderB
+            FolderCDir: src/FolderC
+          build-xml: build-projects.xml
+
+          # Alternatively, you can manually set of the project structure with a JSON input file.
+          # project-json: projects.json
+
+          # This takes the form:
+          # {
+          #    "csharp": {
+          #      "projectName": ["FolderA", "FolderB"]
+          #    }
+          # }
+
+  scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    needs: changes
+    strategy:
+      matrix:
+        project: ${{ fromJson(needs.changes.outputs.projects).projects }}
+    steps:
+      - name: Analyze code
+        uses: advanced-security/monorepo-code-scanning-action/scan@main
+        # If you have a custom analysis workflow defined at .github/workflows/custom-codeql-analysis.yml, then set this to 'true' so that it is run.
+        # custom-analysis: true
+
+# You can either use the 'republish' step to republish the results of the analysis to the PR, or the 'replay' step to update the checks on the PR as having passed.
+# Which you chose is up to you - do you need to see complete results on the PR, or are you happy with the check being set to pass without the results being included?
+
+  # republish:
+  #   runs-on: ubuntu-latest
+  #   permissions:
+  #     contents: read
+  #     security-events: write
+  #   needs: changes
+  #   steps:
+  #     - name: Republish results
+  #       uses: aegilops-org/monorepo-code-scanning-action/republish-sarif@main
+  #       with:
+  #         projects: ${{ needs.changes.outputs.projects }}
+
+  replay:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    needs: changes
+    steps:
+      - name: Replay CodeQL checks
+        uses: aegilops-org/monorepo-code-scanning-action/replay-checks@main
+        with:
+          projects: ${{ needs.changes.outputs.projects }}

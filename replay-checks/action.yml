@@ -1,0 +1,23 @@
+name: Replay
+description: 'Replay CodeQL check status for languages not scanned in this PR'
+inputs:
+  projects:
+    description: 'Projects changed in this PR'
+    required: true
+    type: string
+
+runs:
+  using: 'composite'
+  steps:
+      - name: Replay checks
+        id: replay
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        env:
+          projects: ${{ inputs.projects }}
+        with:
+          script: |
+            const path = require('node:path')
+            const action_path = process.env.GITHUB_ACTION_PATH
+            const script = require(path.join(action_path, 'replay-checks.js'))
+            script(github, context, core)
