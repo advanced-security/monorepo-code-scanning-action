@@ -17,8 +17,8 @@ name: "CodeQL monorepo"
 on:
   pull_request:
     branches: ["main"]
-  schedule:
-    - cron: "39 18 * * 6"
+#  schedule:
+#    - cron: "39 18 * * 6"
 
 jobs:
   changes:
@@ -29,18 +29,27 @@ jobs:
     outputs:
       projects: ${{ steps.changes.outputs.projects }}
     steps:
-      - name: Checkout local Action
-        uses: actions/checkout@v4
-
       - name: Spot changes to projects
         id: changes
-        uses: ./changes/
+        uses: advanced-security/monorepo-code-scanning-action/changes@main
         with:
+          # If you are using a C# build.xml file, you will need to set any variables in an inline YAML config, as shown, and reference that XML file here with the `build-xml` input
+
           variables: |
             FolderADir: src/FolderA
             FolderBDir: src/FolderB
             FolderCDir: src/FolderC
           build-xml: build-projects.xml
+
+          # Alternatively, you can manually set of the project structure with a JSON input file.
+          # project-json: projects.json
+
+          # This takes the form:
+          # {
+          #    "csharp": {
+          #      "projectName": ["FolderA", "FolderB"]
+          #    }
+          # }
 
   scan:
     runs-on: ubuntu-latest
@@ -51,12 +60,13 @@ jobs:
       matrix:
         project: ${{ fromJson(needs.changes.outputs.projects).projects }}
     steps:
-      - name: Checkout local Action
-        uses: actions/checkout@v4
-
       - name: Analyze code
-        uses: ./scan/
+        uses: advanced-security/monorepo-code-scanning-action/scan@main
+        # If you have a custom analysis workflow defined at .github/workflows/custom-codeql-analysis.yml, then set this to 'true' so that it is run.
         # custom-analysis: true
+
+# You can either use the 'republish' step to republish the results of the analysis to the PR, or the 'replay' step to update the checks on the PR as having passed.
+# Which you chose is up to you - do you need to see complete results on the PR, or are you happy with the check being set to pass without the results being included?
 
   # republish:
   #   runs-on: ubuntu-latest
@@ -65,11 +75,8 @@ jobs:
   #     security-events: write
   #   needs: changes
   #   steps:
-  #     - name: Checkout local Action
-  #       uses: actions/checkout@v4
-
   #     - name: Republish results
-  #       uses: ./republish-sarif/
+  #       uses: aegilops-org/monorepo-code-scanning-action/republish-sarif@main
   #       with:
   #         projects: ${{ needs.changes.outputs.projects }}
 
@@ -79,10 +86,7 @@ jobs:
       security-events: write
     needs: changes
     steps:
-      - name: Checkout local Action
-        uses: actions/checkout@v4
-
       - name: Replay CodeQL checks
-        uses: ./replay-checks/
+        uses: aegilops-org/monorepo-code-scanning-action/replay-checks@main
         with:
           projects: ${{ needs.changes.outputs.projects }}
