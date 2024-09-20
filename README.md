@@ -18,4 +18,4 @@ The `scan` Action scans any changed projects using CodeQL.
 
 ## Replay or republish
 
-The `replay` or `republish` Actions are chosen between to allow the unscanned parts of the project to pass the required CodeQL checks. Either the SARIF is reublished, or the previous Code Scanning check is replayed.
+The `replay-checks` or `republish-sarif` Actions are chosen between to allow the unscanned parts of the project to pass the required CodeQL checks. Either the SARIF is reublished, or the previous Code Scanning check is replayed.
