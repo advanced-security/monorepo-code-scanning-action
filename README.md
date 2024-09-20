@@ -4,6 +4,8 @@ Focus CodeQL (or other SAST) scans on just the changed parts of your monorepo, s
 
 For an example of how to use it, see the `sample-codeql-monorepo-workflow.yml` in this repository.
 
+The steps pass information along to each other to work properly, so you need to use the format defined in that workflow, altering the inputs as required.
+
 ## Changes
 
 The `changes` Action looks for changes in your defined project structure.
@@ -12,9 +14,13 @@ That structure can either be defined in a JSON file and provided by name in the 
 
 When using `build-xml` you will need to define any variables used in the input file with concrete values, in a `variables` input, defining them in a YAML format dictionary.
 
+You can see an example of this XML format in this repository in `build-projects.xml`.
+
 ## Scan
 
-The `scan` Action scans any changed projects using CodeQL.
+The `scan` Action scans any changed projects using CodeQL, using just the changes to the defined projects.
+
+It can use a custom CodeQL scanning workflow to do manual build steps and any required preparation steps before the scanning, which must be located at `.github/workflows/codeql-custom-analysis.yml`, and activated using the input `custom-analysis: true`.
 
 ## Replay or republish
 
