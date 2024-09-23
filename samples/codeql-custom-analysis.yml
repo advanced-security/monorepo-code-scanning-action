@@ -1,5 +1,7 @@
 # Customise this workflow to perform the CodeQL analysis on the project(s) that have changed in a monorepo.
 
+# ⚠️ This is an example and must be tuned for using in your own repository. ⚠️
+
 # You can specify the CodeQL configuration and build steps for each project.
 
 name: Analyze

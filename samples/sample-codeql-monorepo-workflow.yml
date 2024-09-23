@@ -1,4 +1,8 @@
+# ⚠️ This is an example and must be tuned for using in your own repository. ⚠️
+# 
 # This workflow determines which sub projects of a monorepo are affected by a PR, and then runs CodeQL analysis on those projects.
+#
+# To use it, it would be placed under `./github/workflows` in the monorepo.
 #
 # The specific language and paths affected are passed to the CodeQL analysis, along with a custom analysis workflow if one is provided.
 #
@@ -11,6 +15,8 @@
 # If you want to specifiy custom queries, you can do so in the custom analysis workflow.
 #
 # You can find an example of what that looks like in this repository at .github/workflows/custom-codeql-analysis.yml
+#
+# ⚠️ This is an example and must be tuned for using in your own repository. ⚠️
 
 name: "CodeQL monorepo"
 
@@ -34,7 +40,7 @@ jobs:
         uses: advanced-security/monorepo-code-scanning-action/changes@main
         with:
           # If you are using a C# build.xml file, you will need to set any variables in an inline YAML config, as shown, and reference that XML file here with the `build-xml` input
-
+          # ⚠️ This is an example and must be tuned for using in your own repository. ⚠️
           variables: |
             FolderADir: src/FolderA
             FolderBDir: src/FolderB
