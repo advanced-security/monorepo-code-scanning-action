@@ -2,6 +2,8 @@
 # 
 # This workflow determines which sub projects of a monorepo are affected by a PR, and then runs CodeQL analysis on those projects.
 #
+# It uses Actions from `advanced-security/monorepo-code-scanning-action`
+#
 # To use it, it would be placed under `./github/workflows` in the monorepo.
 #
 # The specific language and paths affected are passed to the CodeQL analysis, along with a custom analysis workflow if one is provided.
