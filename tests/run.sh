@@ -6,7 +6,7 @@ cd ..
 npm install yaml xml2js @actions/core
 cd "$SCRIPT_DIR" || exit
 
-filename=build_projects_dummy.xml variables=$(cat variables.yml) node run-build-projects.js > projects.json
+#filename=build_projects_dummy.xml variables=$(cat variables.yml) node run-build-projects.js > projects.json
 
 echo "Output of build-projects-from-xml.js"
 cat projects.json
