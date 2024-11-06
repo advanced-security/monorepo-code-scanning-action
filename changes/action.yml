@@ -10,6 +10,18 @@ inputs:
   projects-json:
     description: 'Path to the JSON file that defines the projects to build (optional)'
     required: false
+  extra-globs:
+    description: 'Extra globs to include in the scan in JSON format, by language (optional)'
+    required: false
+  queries:
+    description: 'List of queries to run, comma separated (optional). Defaults to "code-scanning", or overriden by the "queries" input in the project definition'
+    required: false
+  config-file:
+    description: 'Path to CodeQL config to use (optional)'
+    required: false
+  config:
+    description: 'Inline CodeQL config YAML (optional)'
+    required: false
 outputs:
   projects:
     description: Matrix of the projects to analyze
@@ -20,13 +32,14 @@ outputs:
 runs:
   using: 'composite'
   steps:
-    - if: ${{ inputs.build-xml != '' || inputs.projects-json != '' }}
-      name: Checkout project definition files
+    - if: ${{ inputs.build-xml != '' || inputs.projects-json != '' || inputs.config-file != '' }}
+      name: Checkout project definition files and/or CodeQL config file
       uses: actions/checkout@v4
       with:
         sparse-checkout: |
           ${{ inputs.build-xml }}
           ${{ inputs.projects-json }}
+          ${{ inputs.config-file }}
         sparse-checkout-cone-mode: false
 
     - name: Install Node.js
@@ -57,7 +70,7 @@ runs:
             core.setFailed(`Failed to read projects JSON: ${error}`)
           }
 
-    - name: Process projects XML into JSON
+    - name: Process MSBuild XML into JSON
       id: build-projects
       if: ${{ inputs.projects-json == '' && inputs.build-xml != '' }}
       uses: actions/github-script@v7
@@ -73,6 +86,7 @@ runs:
           return script(github, context, core)
 
     - name: Debug build projects
+      if: ${{ runner.debug == '1' }}
       run: echo "${result}"
       shell: bash
       env:
@@ -83,6 +97,7 @@ runs:
       uses: actions/github-script@v7
       env: 
         projects: ${{ steps.read-projects.outputs.result || steps.build-projects.outputs.projects }}
+        extra_globs: ${{ inputs.extra-globs }}
       with:
         result-encoding: string
         script: |
@@ -92,6 +107,7 @@ runs:
           return script(github, context, core)
 
     - name: Debug build filters
+      if: ${{ runner.debug == '1' }}
       run: echo "${result}"
       shell: bash
       env:
@@ -104,6 +120,7 @@ runs:
         filters: ${{ steps.build-filters.outputs.result }}
 
     - name: Debug filter result
+      if: ${{ runner.debug == '1' }}
       run: echo "${result}"
       shell: bash
       env:
@@ -115,9 +132,19 @@ runs:
       env:
         filters: ${{ toJson(steps.filter.outputs) }}
         projects: ${{ steps.read-projects.outputs.result || steps.build-projects.outputs.projects }}
+        queries: ${{ inputs.queries }}
+        config_file: ${{ inputs.config-file }}
+        config: ${{ inputs.config }}
       with:
         script: |
           const path = require('node:path')
           const action_path = process.env.GITHUB_ACTION_PATH
           const script = require(path.join(action_path, 'build-matrix.js'))
           return script(github, context, core)
+
+    - name: Debug matrix result
+      if: ${{ runner.debug == '1' }}
+      run: echo "${result}"
+      shell: bash
+      env:
+        result: ${{ toJson(steps.build-matrix.outputs) }}

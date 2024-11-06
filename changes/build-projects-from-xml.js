@@ -62,8 +62,16 @@ function run(github, context, core) {
       }
 
       // these are always C# projects, so hardcode the language
+      // and put into the required projects structure with a specified "paths" key for each project
       const projects = {
-        csharp: groupedIncludes,
+        "csharp": {
+          "projects": Object.fromEntries(Object.entries(groupedIncludes).map(
+            (include) => {
+              const [name, paths] = include;
+              return [name, {"paths": paths}];
+            }
+          )),
+        }
       };
 
       if (core !== undefined) {

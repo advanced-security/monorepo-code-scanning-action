@@ -8,15 +8,20 @@
 #
 # The specific language and paths affected are passed to the CodeQL analysis, along with a custom analysis workflow if one is provided.
 #
-# For TypeScript/JavaScript, Python, and Ruby, and when using 'build-mode: none' for Java and C#, you can let the CodeQL Action handle the "build" step,
-# and only target the project that is being changed by the PR.
+# For TypeScript/JavaScript, Python, and Ruby, Java and C#, you can let the CodeQL Action handle the "build" step,
+# and only target the project that is being changed by the PR, using `build-mode: none`.
 #
-# For Kotlin, Swift and C/C++, or when not using 'build-mode: none' for Java and C#, you will need to manually build the project,
-# in a way that you can define in the optional custom analysis workflow.
+# For other languages (Kotlin, Swift and C/C++) an autobuild will be attempted.
 #
-# If you want to specifiy custom queries, you can do so in the custom analysis workflow.
+# You can instead opt to use `manual` for CodeQL languages, to specify everything about the build and CodeQL analysis.
 #
-# You can find an example of what that looks like in this repository at .github/workflows/custom-codeql-analysis.yml
+# Non-CodeQL tools are supported using the `other` build-mode in the language/project definition.
+#
+# Either `manual` or `other` build-modes require a custom analysis workflow.
+#
+# If you want to specify custom queries, you can do so in the same custom analysis workflow, and set the `manual` build-mode.
+#
+# You can find an example of what that looks like in this repository at .github/workflows/code-scanning-custom-analysis.yml
 #
 # ⚠️ This is an example and must be tuned for using in your own repository. ⚠️
 
@@ -26,10 +31,10 @@ on:
   pull_request:
     branches: ["main"]
     types:
-      - opened
-      - reopened
-      - synchronize
-      - closed
+      - opened      # scan new PRs
+      - reopened    # scan PRs that are reopened
+      - synchronize # scan newly pushed commits to PRs
+      - closed      # republish results from merged PRs
 
 jobs:
   changes:
@@ -39,6 +44,7 @@ jobs:
       contents: read
     outputs:
       projects: ${{ steps.changes.outputs.projects }}
+      scan-required: ${{ steps.changes.outputs.scan-required }}
     steps:
       - name: Spot changes to projects
         id: changes
@@ -58,12 +64,31 @@ jobs:
           # This takes the form:
           # {
           #    "csharp": {
-          #      "projectName": ["FolderA", "FolderB"]
+          #      "projects": {
+          #         "<projectName": {
+          #           "paths": ["FolderA", "FolderB"]
+          #         }
+          #      }
           #    }
           # }
+          #
+          # At the language or project you can also set `build-mode` and `queries` keys to override the defaults.
+
+          # In either case you can also set a config or config-file key to specify a global CodeQL config to use for the analysis.
+          #
+          # config-file: .github/codeql-config.yml
+          # config: |
+          #   queries:
+          #     - my-custom-query
+
+          # You can also specify extra globs to include in the scan, by language, in YAML format.
+          # extra-globs: |
+          #   python:
+          #     - *.py
+          #     - requirements-dev.txt
 
   scan:
-    if: needs.changes.outputs.scan-required == true
+    if: needs.changes.outputs.scan-required == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -76,10 +101,8 @@ jobs:
     steps:
       - name: Analyze code
         uses: advanced-security/monorepo-code-scanning-action/scan@main
-        # If you have a custom analysis workflow defined at .github/workflows/custom-codeql-analysis.yml, then set this to 'true' so that it is run.
-        # custom-analysis: true
 
-# You must use the 'republish' step to republish the results of missing analyses from the target branch to the PR, to pass required checks.
+# You must use the 'republish' step to republish the results of missing analyses from the target branch to the PR, to pass any required checks.
 # It will also copy these results to the target branch on merge, so that the full results are available in the target branch.
 
   republish:

@@ -95,12 +95,16 @@ async function run(github, context, core) {
         },
       });
       fs.writeFileSync(
-        `sarif/${analysis.category}.sarif`,
+        `sarif/${escapeForFilename(analysis.category)}.sarif`,
         JSON.stringify(sarif.data)
       );
       core.info(`Downloaded SARIF for ${analysis.category}`);
     }
   });
+}
+
+function escapeForFilename(category) {
+  return category.replace(/[^a-z0-9]/gi, "_").toLowerCase();
 }
 
 function onTargetOfPR(analysis, context, core) {

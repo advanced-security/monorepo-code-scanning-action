@@ -1,20 +1,20 @@
 # Monorepo Code Scanning Action
 
-> [!WARNING]
+> [!NOTE]
 > This is an _unofficial_ tool created by Field Security Specialists, and is not officially supported by GitHub.
 
-Focus CodeQL scans on parts of your monorepo, split up as you define, to minimize work and allow scanning a monorepo in parallel for scheduled scans.
+Focus Code Scanning with GitHub Advanced Security on parts of your monorepo, split up as you define. This can minimize CI work and time and allow scanning a monorepo in parallel for scheduled scans.
 
-For an example of how to use it for PR scans, see the `./samples/sample-codeql-monorepo-pr-workflow.yml` in this repository. For a schedule scan example, see `./samples/sample-codeql-monorepo-whole-repo-workflow.yml`
+For an example of how to use it for PR scans, see the [`./samples/sample-codeql-monorepo-pr-workflow.yml`](./samples/sample-codeql-monorepo-pr-workflow.yml) in this repository. For a scheduled scan example, see [`./samples/sample-codeql-monorepo-whole-repo-workflow.yml`](./samples/sample-codeql-monorepo-whole-repo-workflow.yml)
 
 The steps pass information along to each other to work properly, so you need to use the format defined in that workflow, altering the inputs as required.
 
-> [!WARNING]
+> [!NOTE]
 > This is an _unofficial_ tool created by Field Security Specialists, and is not officially supported by GitHub.
 
 ## Overview
 
-If you can define a project structure for your repo, with each project being a specific language and subset of folders, then you can use this tool to split up scans of your monorepo.
+You must define a project structure for your repo, with each project being a specific language and subset of paths of directories, to use this tool to split up scans of your monorepo.
 
 If you use C# and an existing [MSBuild project file](https://learn.microsoft.com/en-us/visualstudio/msbuild/walkthrough-creating-an-msbuild-project-file-from-scratch?view=vs-2022), you can directly use that to define the project structure.
 
@@ -22,15 +22,25 @@ For other cases you need to create a JSON file that describes that structure, li
 
 ```json
 {
-  "<language>": {
-    "<project name>" : ["<folder path 1>", "<folder path 2>", ...],
+  "<language>":
+    "projects": {
+      "<project name>": {
+        "paths":
+          [
+            "<folder path 1>",
+            "<folder path 2>",
+            ...
+          ]
+      },
     ...
   },
   ...
 }
 ```
 
-This then lets a workflow use the `changes` Action to look for changes in the defined project structure; the `scan` Action then scans any changed projects using CodeQL; and lastly `republish-sarif` to allow the unscanned parts of the project to pass the required CodeQL checks by republishing the SARIF.
+In the description of the `changes` Action you can see more optional keys that can be set at language or project level.
+
+This project definition lets a workflow use the `changes` Action to look for changes in the defined project structure; the `scan` Action then scans any changed projects using CodeQL (or another tool); and lastly `republish-sarif` allows the unscanned parts of the project to pass the required CodeQL checks by republishing the SARIF.
 
 ```mermaid
 graph TD
@@ -45,13 +55,10 @@ graph TD
 
 ## Using the Action
 
-> [!WARNING]
+> [!NOTE]
 > This is an _unofficial_ tool created by Field Security Specialists, and is not officially supported by GitHub.
 
 The steps pass information along to each other to work properly, so you need to use the format defined in that sample workflow, altering the inputs as required.
-
-> [!NOTE]
-> These Actions are composite Actions, and rely on steps using `bash`, so are not currently compatible with Windows runners.
 
 ### Branch protection
 
@@ -65,21 +72,95 @@ You may wish to bypass this rule occasionally, so remember to allow for that app
 
 The `changes` Action looks for changes in your defined project structure.
 
-That structure can either be defined in a JSON file and provided by name in the `project-json` input, or can be parsed out of a C# build XML file in the `build-xml` input.
+It also sets the CodeQL configuration to use for the rest of the workflow.
 
-When using `build-xml` you will need to define any variables used in the input file with concrete values, in a `variables` input, defining them in a YAML format dictionary.
+#### Setting project structure
 
-You can see an example of this XML format in this repository in `./samples/build-projects.xml`.
+The project structure can either be defined in a JSON file and provided by name in the `project-json` input, or can be parsed out of a C# build XML file in the `build-xml` input.
+
+It has several purposes - it defines the paths that are watched for changes, and checked out, and also defines CodeQL configuration options.
+
+When using `build-xml` you will need to define any variables used in the input file with concrete values, in a `variables` input, defining them in a YAML format dictionary. You can see an example of this XML format in this repository in `./samples/build-projects.xml`.
+
+> [!NOTE]
+> Do not use `./` to lead path or file names
+
+The basic required structure has a top-level key for each language, named as CodeQL does (or with an arbitrary name for non-CodeQL languages). Each language has a `projects` key, and under that each project is a named key that contains `paths`, which is a list of folder names (without a leading `./` - e.g. `src/FolderA`).
+
+In the JSON version, you can optionally specify the build-mode for CodeQL, as `none`, `auto` or `manual` to select that mode, or use `other` to allow scanning with a different code scanning tool than CodeQL. That can be done at language or project level by supplying a `build-mode` key at the appropriate level. A suitable build-mode is defaulted if you do not provide one, and if you use one at the project level it overrides any set at the language level.
+
+You can also include individual files using a `files` key in the project. These files are _not watched_ for changes, but will be included in the sparse checkout along with the folders in the `paths` key. This is to prevent triggering a scan of every project if a top-level build file is changed. If it is necessary, a full-rescan of the repository can be triggered manually at any time using a full-repo workflow. Again, do not use `./` to lead file names.
+
+The `paths` and `files` lists are evaluated by two different engines - one is the `dorny/paths-filter` Action, and the other is the `actions/checkout` Action. The former uses [picomatch](https://github.com/micromatch/picomatch) and the latter uses the [gitignore](https://git-scm.com/docs/gitignore)-style matching and the, so wildcards can be used, but their exact behaviour may differ slightly - it is best to use exact paths where possible.
+
+You can also optionally specify a set of CodeQL queries to use with the `queries` key, again either at language or project level. This is a list of inputs valid for the `queries` input of the `codeql/init` step, as [documented here](https://docs.github.com/en/enterprise-cloud@latest/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning#specifying-additional-queries).
+
+If you do not want to specify `queries` in this way you can also set a global `queries` input to the Action - see below.
+
+An example of a JSON file using a `queries`, `build-mode` and `files` keys is:
+
+```json
+{
+  "<language>":
+    "build-mode": "none",
+    "queries": [
+      "security-extended",
+      "./local/path/to/a/query.qls",
+    ]
+    "projects": {
+      "<project name>": {
+        "build-mode": "auto",
+        "paths": [
+          "<folder path 1>",
+          "<folder path 2>",
+          ...
+        ],
+        "files": [
+          "<file 1>",
+          "<file 2>",
+          ...
+        ]
+      },
+    ...
+  },
+  ...
+}
+```
+
+If you dynamically generate the project JSON file, then it is best to save it outside of the Actions workspace, such as in `$RUNNER_TEMP`, since a checkout may overwrite it.
+
+#### Setting custom language globs
+
+The files checked for changes in the project `paths` are not all of the files in that path, but a subset, defined per language. There is a bundled set of globs defined for each language, which are searched for in the project paths defined for the project.
+
+You can add to that with `extra-globs` input to the `changes` Action, which takes an inline YAML input, of the form:
+
+```yaml
+<language>:
+  - <glob1>
+  - <glob2>
+  ...
+```
+
+#### Configuring CodeQL
+
+In addition to settings the `queries` key at the language or project level, you can also set it globally.
+
+If you pass a global `queries` input, as a comma separated list of strings, it allows setting the queries to use for all languages and projects. They use the same format as the `queries` input for the `codeql/init` step, as [documented here](https://docs.github.com/en/enterprise-cloud@latest/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning#specifying-additional-queries), comma separated just as in that case.
+
+Similarly, you can pass in a global `config` or `config-file` input, which use the same format as  [documented here](https://docs.github.com/en/enterprise-cloud@latest/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning#using-a-custom-configuration-file) and [here](https://docs.github.com/en/enterprise-cloud@latest/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning#specifying-configuration-details-using-the-config-input). This _cannot_ currently be set at the language or project level, only globally.
+
+The effective config used is a combination of the inputs created from the paths of the project, and any queries set in the separate `queries` input to this Action, overlaid with the content of the `config` or `config-file` inputs.
 
 ### Scan
 
-The `scan` Action scans any changed projects using CodeQL, using just the changes to the defined projects.
+The `scan` Action scans any changed projects using CodeQL (or optionally another tool), using just the changes to the defined projects.
 
 A sparse checkout of the project in which changes happened is used to speed up the checkout and target scans at just that project.
 
-The scan can use a custom CodeQL scanning workflow to do manual build steps and any required preparation steps before the scanning, which must be located at `.github/workflows/codeql-custom-analysis.yml` in your repository, and activated using the input `custom-analysis: true`.
+The scan can use a custom code scanning workflow to do manual build steps and any required preparation steps before the scanning, which must be located at `.github/workflows/code-scanning-custom-analysis.yml` in your repository. This is used for the `build-mode` of `manual` or `other`.
 
-You can see an example of this custom workflow in this repository in `./samples/codeql-custom-analysis.yml`.
+You can see an example of this custom workflow in this repository in [`./samples/code-scanning-custom-analysis.yml`](./samples/code-scanning-custom-analysis.yml).
 
 This must have conditional checks to apply the correct build steps for the language and project.
 
@@ -87,19 +168,27 @@ This must have conditional checks to apply the correct build steps for the langu
 
 The  `republish-sarif` Action allows the unscanned parts of the project to pass the required CodeQL checks.
 
-The SARIF is reublished, meaning a complete set of Code Scanning results is attached to the PR, copied from the target branch, whether or not the project was changed during the PR.
+The SARIF is republished, meaning a complete set of Code Scanning results is attached to the PR, copied from the target branch, whether or not the project was changed during the PR.
+
+It will also republish the scanning results onto the target branch, on merge. This saves running a full repo scan on the target branch.
+
+To allow this, you need to give the workflow the `closed` type on the `pull_request` trigger to be able run on PR merge, as shown in the sample workflow, and here:
+
+```yaml
+  pull_request:
+    branches: ["main"]
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+```
 
 ## Limitations
 
-This tool is currently designed to split up scanning of a monrepo with CodeQL only. It is not designed to work with other scanning tools, but could be adapted to do so.
-
 The custom CodeQL analysis requires manual control over which build steps are applied to which project, in a single workflow, in contrast to the declarative design of the rest of the workflow.
 
-It is necessary to do a shallow checkout of the repository in the `changes` step, followed by further git operations done by the `dorny/paths-filter` Action, to get the correct diff for the `scan` step. For large monorepos this can be slow.
-
 This tool cannot help with a monolith that cannot be split up into smaller projects.
-
-The files checked for changes in the project paths are not all of the files in that path, but a subset, defined per language. They are a fixed set of globs defined in `changes/build-filters.js`. If you need to change these to correctly spot changes, you will need to raise a PR to this repository. This is not currently extensible.
 
 If you have a monorepo with lots of languages that exist in the same projects you will need to duplicate that project structure multiple times for each affected language. A future option could take a single named project with several paths and languages - raise an issue if that would be helpful, please.
 
@@ -107,7 +196,7 @@ If you have a monorepo with lots of languages that exist in the same projects yo
 
 Local tests for the scripts this relies on are located in the `tests` folder. They are run with `./run.sh`, vs using a testing framework.
 
-Testing is also done end-to-end using the [`advanced-security/sample-csharp-monorepo`](https://github.com/advanced-security/sample-csharp-monorepo/) repository.
+Testing is also done end-to-end using the private [`advanced-security/sample-csharp-monorepo`](https://github.com/advanced-security/sample-csharp-monorepo/) repository.
 
 ## License
 
@@ -119,7 +208,7 @@ See [CODEOWNERS](CODEOWNERS) for the list of maintainers.
 
 ## Support
 
-> [!WARNING]
+> [!NOTE]
 > This is an _unofficial_ tool created by Field Security Specialists, and is not officially supported by GitHub.
 
 See the [SUPPORT](SUPPORT.md) file.
