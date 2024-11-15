@@ -1,4 +1,7 @@
 const yaml = require("yaml");
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
 
 function run(github, context, core) {
   const raw_projects = process.env.projects;
@@ -113,7 +116,14 @@ function run(github, context, core) {
     }
   }
 
-  return yaml.stringify(filters);
+  const filtersYaml = yaml.stringify(filters);
+  const tempDir = process.env.RUNNER_TEMP || os.tmpdir();
+  const tempFilePath = path.join(tempDir, `filters-${Date.now()}-${Math.random().toString(36).substring(2, 15)}.yaml`);
+
+  fs.writeFileSync(tempFilePath, filtersYaml);
+
+  core.debug(`Filters written to ${tempFilePath}`);
+  return tempFilePath;
 }
 
 module.exports = (github, context, core) => {
