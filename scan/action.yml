@@ -57,3 +57,47 @@ runs:
       uses: github/codeql-action/analyze@v3
       with:
         category: "/language:${{ matrix.project.language }};project:${{ matrix.project.name }}"
+        upload: false
+        output: sarif-results
+
+    # Parse the db-locations output and get the sarif file name from the analysis
+    # - db-locations ex: {javascript:/home/runner/work/_temp/codeql_databases/javascript}
+    # - sarif-output ex: /home/runner/work/sample-javascript-monorepo/sample-javascript-monorepo/sarif-results
+    - name: Set SARIF file name
+      id: set-sarif-file-name
+      if: matrix.project.build_mode != 'other'
+      uses: actions/github-script@v7
+      with:
+        result-encoding: string  # Just return string not a json
+        script: |
+          const dbLocations = JSON.parse('${{ steps.codeql-analyze.outputs.db-locations }}');
+          const language = Object.keys(dbLocations)[0];
+          const sarifFilePath = `${language}.sarif`;
+          console.log(`SARIF path: ${{ steps.codeql-analyze.outputs.sarif-output }}/`);
+          console.log(`SARIF file name: ${sarifFilePath}`);          
+          return sarifFilePath;
+
+    - name: Annotate CodeQL Alert SARIF with Project tag
+      if: matrix.project.build_mode != 'other'  
+      uses: advanced-security/monorepo-code-scanning-action/sarif-project-annotator@annotate-sarif
+      with:
+        project: ${{ matrix.project.name }}
+        sarif_file: ${{ steps.codeql-analyze.outputs.sarif-output }}/${{ steps.set-sarif-file-name.outputs.result }}
+        output_file: ${{ steps.codeql-analyze.outputs.sarif-output }}/${{ matrix.project.name }}-${{ steps.set-sarif-file-name.outputs.result }}
+
+    - name: Upload SARIF with project tags
+      if: matrix.project.build_mode != 'other'
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        category: "/language:${{ matrix.project.language }};project:${{ matrix.project.name }}"
+        sarif_file: ${{ steps.codeql-analyze.outputs.sarif-output }}/${{ matrix.project.name }}-${{ steps.set-sarif-file-name.outputs.result }}
+
+    # DEBUG: Upload the SARIF file for debugging
+    - name: Upload CodeQL Analysis
+      if: matrix.project.build_mode != 'other' && runner.debug == '1'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.project.name }}-debug-sarif
+        path: ${{ steps.codeql-analyze.outputs.sarif-output }}/*.sarif
+
+

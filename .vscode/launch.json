@@ -1,0 +1,13 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Run Annotator Test",
+        "type": "node",
+        "request": "launch",
+        "program": "${workspaceFolder}/tests/run-annotator-test.js",
+        "skipFiles": ["<node_internals>/**"],
+        "console": "integratedTerminal"
+      }
+    ]
+  }
