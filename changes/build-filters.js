@@ -39,7 +39,7 @@ function run(github, context, core) {
       "**/packages.config",
     ],
     python: [
-      "**/*.{py}",
+      "**/*.py",
       "**/pyproject.toml",
       "**/Pipfile{,.lock}",
       "**/requirements.{txt,in}",
