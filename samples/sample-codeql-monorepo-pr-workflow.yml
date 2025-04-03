@@ -59,7 +59,7 @@ jobs:
           build-xml: build-projects.xml
 
           # Alternatively, you can manually set of the project structure with a JSON input file.
-          # project-json: projects.json
+          # projects-json: projects.json
 
           # This takes the form:
           # {

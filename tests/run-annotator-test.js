@@ -12,25 +12,8 @@ async function testSarifProjectAnnotator() {
 
         // Mock process.env variables
         process.env['project'] = 'Project2'
-        //process.env['projects-json'] = 'samples/projects.json'
         process.env['sarif_file'] = 'tests/sarif/sample.sarif'
         process.env['output_file'] = 'tests/sarif/output.sarif'
-
-        // // Mock the inputs
-        // core.getInput = (name) => {
-        //     switch (name) {
-        //         case 'project':
-        //             return 'Project2'
-        //         case 'projects-json':
-        //             return 'samples/projects.json'
-        //         case 'sarif_file':
-        //             return 'tests/sarif/sample.sarif'
-        //         case 'output_file':
-        //             return 'tests/sarif/output.sarif'
-        //         default:
-        //             throw new Error(`Unknown input: ${name}`)
-        //     }
-        // }
 
         // Delete the output file
         try {

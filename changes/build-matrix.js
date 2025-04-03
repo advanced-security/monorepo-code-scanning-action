@@ -1,3 +1,4 @@
+const fs = require('fs');
 const yaml = require("yaml");
 
 function run(github, context, core) {

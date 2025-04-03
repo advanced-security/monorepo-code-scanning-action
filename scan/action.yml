@@ -49,8 +49,7 @@ runs:
         language: ${{  matrix.project.language }}
         name: ${{  matrix.project.name }}
 
-    # Perform the CodeQL analysis, if we have a CodeQL build
-    # This will upload the SARIF for you
+    # Perform the CodeQL analysis, if we have a CodeQL build (do not upload results - requires further SARIF processing)
     - name: Perform CodeQL Analysis
       id: codeql-analyze
       if: matrix.project.build_mode != 'other'
@@ -61,8 +60,6 @@ runs:
         output: sarif-results
 
     # Parse the db-locations output and get the sarif file name from the analysis
-    # - db-locations ex: {javascript:/home/runner/work/_temp/codeql_databases/javascript}
-    # - sarif-output ex: /home/runner/work/sample-javascript-monorepo/sample-javascript-monorepo/sarif-results
     - name: Set SARIF file name
       id: set-sarif-file-name
       if: matrix.project.build_mode != 'other'
@@ -77,14 +74,23 @@ runs:
           console.log(`SARIF file name: ${sarifFilePath}`);          
           return sarifFilePath;
 
+    # Annotate the SARIF file tags to include the monorepo's current project name
     - name: Annotate CodeQL Alert SARIF with Project tag
-      if: matrix.project.build_mode != 'other'  
-      uses: advanced-security/monorepo-code-scanning-action/sarif-project-annotator@annotate-sarif
-      with:
+      id: annotate-sarif
+      uses: actions/github-script@v7
+      env:
         project: ${{ matrix.project.name }}
         sarif_file: ${{ steps.codeql-analyze.outputs.sarif-output }}/${{ steps.set-sarif-file-name.outputs.result }}
         output_file: ${{ steps.codeql-analyze.outputs.sarif-output }}/${{ matrix.project.name }}-${{ steps.set-sarif-file-name.outputs.result }}
+      with:
+        result-encoding: string
+        script: |
+          const path = require('node:path')
+          const action_path = process.env.GITHUB_ACTION_PATH
+          const script = require(path.join(action_path, '..', 'sarif-project-annotator', 'sarif-project-annotator.js'))
+          return await script(github, context, core)
 
+    # Upload the annotated SARIF file to GitHub Code Scanning service
     - name: Upload SARIF with project tags
       if: matrix.project.build_mode != 'other'
       uses: github/codeql-action/upload-sarif@v3
