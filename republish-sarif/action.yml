@@ -69,6 +69,10 @@ runs:
         done
 
     # Scenario 2: Merged mode - upload SARIF files via GitHub API to the PR target
+    # if we're in merged mode, upload to the PR target
+    # this uses the HEAD SHA of the PR, which is the same as the merge commit SHA
+    # if "require PRs to be up to date before merging" is enabled
+    # otherwise, we have a hard time determining what the commit SHA of the merge commit is
     - name: Upload SARIF files to PR target
       if: github.event.pull_request.merged == true && hashFiles('sarif/*.sarif') != ''
       shell: bash
