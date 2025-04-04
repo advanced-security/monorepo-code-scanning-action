@@ -46,11 +46,12 @@ function run(github, context, core) {
   const LANGUAGE_ALIASES = {
     c: "c-cpp",
     "c++": "c-cpp",
-    "c#": "csharp",
+    cpp: "c-cpp",
+    "c#": "csharp",    
+    java: "java-kotlin",
     kotlin: "java-kotlin",
     typescript: "javascript-typescript",
     javascript: "javascript-typescript",
-    cpp: "c-cpp",
   };
 
   // Resolve language alias before processing
