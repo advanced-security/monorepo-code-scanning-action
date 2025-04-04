@@ -84,23 +84,84 @@ async function run(github, context, core) {
     }
   }
 
-  analysesToDownload.forEach(async (analysis) => {
+  // Create an array of promises for each download operation
+  const downloadPromises = analysesToDownload.map(async (analysis) => {
     if (analysis) {
-      const sarif = await github.rest.codeScanning.getAnalysis({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        analysis_id: analysis.id,
-        headers: {
-          Accept: "application/sarif+json",
-        },
-      });
-      fs.writeFileSync(
-        `sarif/${escapeForFilename(analysis.category)}.sarif`,
-        JSON.stringify(sarif.data)
-      );
-      core.info(`Downloaded SARIF for ${analysis.category}`);
+      try {
+        const sarif = await github.rest.codeScanning.getAnalysis({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          analysis_id: analysis.id,
+          headers: {
+            Accept: "application/sarif+json",
+          },
+        });
+        
+        fs.writeFileSync(
+          `sarif/${escapeForFilename(analysis.category)}.sarif`,
+          JSON.stringify(sarif.data)
+        );
+        core.info(`Downloaded SARIF for ${analysis.category}`);
+      } catch (error) {
+        core.error(`Failed to download SARIF for ${analysis.category}: ${error}`);
+      }
     }
   });
+
+  // Wait for all downloads to complete
+  await Promise.all(downloadPromises);
+  
+  // Count the SARIF files in the directory
+  const sarifFiles = fs.readdirSync("sarif").filter(file => file.endsWith(".sarif"));
+  const sarifFilesCount = sarifFiles.length;
+  
+  core.info(`Found ${sarifFilesCount} SARIF files in the directory`);
+
+  // If there are more than 20 SARIF files, add a placeholder file to prevent the codeql-action from combining them
+  if (sarifFilesCount > 20) {
+    core.info(`Adding placeholder SARIF file to prevent combining of ${sarifFilesCount} SARIF files`);
+    addPlaceholderSarifFile();
+    core.info("Added placeholder SARIF file to prevent combining of SARIF files");
+  }
+}
+
+/**
+ * Adds a placeholder SARIF file with a non-CodeQL driver name to prevent combining of SARIF files.
+ * 
+ * Without this, if more than 20 SARIF files are uploaded at once, the following error occurs:
+ * "Error: Code Scanning could not process the submitted SARIF file:
+ * rejecting SARIF, as there are more runs than allowed (30 > 20)"
+ * 
+ * The codeql-action attempts to combine SARIF files only when all files are produced by CodeQL.
+ * By adding a non-CodeQL SARIF file, we prevent this combination, allowing more than 20 files
+ * to be processed individually without hitting the limit.
+ */
+function addPlaceholderSarifFile() {
+  // Create a minimal SARIF file with a non-CodeQL driver name
+  const placeholderSarif = {
+    version: "2.1.0",
+    $schema: "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+    runs: [
+      {
+        tool: {
+          driver: {
+            name: "CodeQL-PREVENT-COMBINED-SARIF",
+            version: "1.0.0",
+            informationUri: "https://github.com/advanced-security/monorepo-code-scanning-action"
+          }
+        },
+        results: [],
+        properties: {
+          comment: "This is a placeholder SARIF file to prevent the codeql-action from combining more than 20 SARIF files into a single upload, which would cause failures."
+        }
+      }
+    ]
+  };
+  
+  fs.writeFileSync(
+    "sarif/placeholder-prevent-combine.sarif",
+    JSON.stringify(placeholderSarif)
+  );
 }
 
 function escapeForFilename(category) {
