@@ -28,6 +28,7 @@ function run(github, context, core) {
     "c++": "c-cpp",
     cpp: "c-cpp",
     "c#": "csharp",
+    java: "java-kotlin",
     kotlin: "java-kotlin",
     typescript: "javascript-typescript",
     javascript: "javascript-typescript",
