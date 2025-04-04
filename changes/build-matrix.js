@@ -95,7 +95,8 @@ function run(github, context, core) {
   for (const [languageKey, lang_data] of Object.entries(projects)) {
     const language = resolveLanguageAlias(languageKey);
     core.debug("Resolved Language: " + language);
-
+    core.debug("Projects: " + JSON.stringify(lang_data.projects));
+    
     projects_to_scan[language] = {};
 
     projects_to_scan[language]["projects"] = Object.fromEntries(
