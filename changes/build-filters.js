@@ -22,13 +22,15 @@ function run(github, context, core) {
 
   const filters = {};
 
+  // Update aliases to map to official identifiers
   const aliases = {
-    java: "java-kotlin",
-    kotlin: "java-kotlin",
-    javascript: "javascript-typescript",
-    typescript: "javascript-typescript",
     c: "c-cpp",
+    "c++": "c-cpp",
     cpp: "c-cpp",
+    "c#": "csharp",
+    kotlin: "java-kotlin",
+    typescript: "javascript-typescript",
+    javascript: "javascript-typescript",
   };
 
   // which filenames to include in the analysis if they are changed, per language
