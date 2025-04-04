@@ -25,19 +25,89 @@ runs:
           const script = require(path.join(action_path, 'republish-sarif.js'))
           script(github, context, core)
 
-    # if we're in PR mode, upload to the PR itself
-    - uses: github/codeql-action/upload-sarif@v3
+    # Scenario 1: PR mode - upload SARIF files via GitHub API to the PR itself
+    - name: Upload SARIF files to PR
       if: github.event_name == 'pull_request' && github.event.pull_request.merged != true && hashFiles('sarif/*.sarif') != ''
-      with:
-        sarif_file: sarif
+      shell: bash
+      run: |
+        echo "Uploading SARIF files to PR via GitHub API"
+        
+        # Count SARIF files
+        SARIF_COUNT=$(find sarif -name "*.sarif" | wc -l)
+        echo "Found $SARIF_COUNT SARIF files to upload"
+        
+        # Get repository information
+        REPO_OWNER="${GITHUB_REPOSITORY%/*}"
+        REPO_NAME="${GITHUB_REPOSITORY#*/}"
+        
+        # Upload each SARIF file individually
+        for SARIF_FILE in sarif/*.sarif; do
+          echo "Processing $SARIF_FILE"
+          
+          # Compress and base64 encode the SARIF file
+          ENCODED_SARIF=$(gzip -c "$SARIF_FILE" | base64 -w0)
+          
+          echo "Uploading $(basename "$SARIF_FILE") to PR"
+          
+          # Upload to PR
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/$REPO_OWNER/$REPO_NAME/code-scanning/sarifs \
+            -f "ref=refs/pull/${{ github.event.pull_request.number }}/merge" \
+            -f "sarif=$ENCODED_SARIF"
+          
+          if [ $? -eq 0 ]; then
+            echo "✓ Successfully uploaded $(basename "$SARIF_FILE")"
+          else
+            echo "✗ Failed to upload $(basename "$SARIF_FILE")"
+          fi
+          
+          # Add a small delay between uploads
+          sleep 1
+        done
 
-    # if we're in merged mode, upload to the PR target
-    # this uses the HEAD SHA of the PR, which is the same as the merge commit SHA
-    # if "require PRs to be up to date before merging" is enabled
-    # otherwise, we have a hard time determining what the commit SHA of the merge commit is
-    - uses: github/codeql-action/upload-sarif@v3
+    # Scenario 2: Merged mode - upload SARIF files via GitHub API to the PR target
+    - name: Upload SARIF files to PR target
       if: github.event.pull_request.merged == true && hashFiles('sarif/*.sarif') != ''
-      with:
-        sarif_file: sarif
-        ref: ${{ 'refs/heads/' }}${{ github.event.pull_request.base.ref }}
-        sha: ${{ github.event.pull_request.head.sha }}
+      shell: bash
+      run: |
+        echo "Uploading SARIF files to PR target via GitHub API"
+        
+        # Count SARIF files
+        SARIF_COUNT=$(find sarif -name "*.sarif" | wc -l)
+        echo "Found $SARIF_COUNT SARIF files to upload"
+        
+        # Get repository information
+        REPO_OWNER="${GITHUB_REPOSITORY%/*}"
+        REPO_NAME="${GITHUB_REPOSITORY#*/}"
+        
+        # Upload each SARIF file individually
+        for SARIF_FILE in sarif/*.sarif; do
+          echo "Processing $SARIF_FILE"
+          
+          # Compress and base64 encode the SARIF file
+          ENCODED_SARIF=$(gzip -c "$SARIF_FILE" | base64 -w0)
+          
+          echo "Uploading $(basename "$SARIF_FILE") to target branch"
+          
+          # Upload to PR target
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/$REPO_OWNER/$REPO_NAME/code-scanning/sarifs \
+            -f "commit_sha=${{ github.event.pull_request.head.sha }}" \
+            -f "ref=refs/heads/${{ github.event.pull_request.base.ref }}" \
+            -f "sarif=$ENCODED_SARIF"
+          
+          if [ $? -eq 0 ]; then
+            echo "✓ Successfully uploaded $(basename "$SARIF_FILE")"
+          else
+            echo "✗ Failed to upload $(basename "$SARIF_FILE")"
+          fi
+          
+          # Add a small delay between uploads
+          sleep 1
+        done
