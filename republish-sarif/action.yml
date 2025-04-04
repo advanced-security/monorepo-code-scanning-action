@@ -51,14 +51,14 @@ runs:
           
           echo "Uploading $(basename "$SARIF_FILE") to PR"
           
-          # Upload to PR
+          # Upload to PR - Using GITHUB_SHA which is the merge commit for PRs
           gh api \
             --method POST \
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             /repos/$REPO_OWNER/$REPO_NAME/code-scanning/sarifs \
             -f "ref=refs/pull/${{ github.event.pull_request.number }}/merge" \
-            -f "commit_sha=${{ github.event.pull_request.head.sha }}" \
+            -f "commit_sha=${{ github.sha }}" \
             -f "sarif=$ENCODED_SARIF"
           
           if [ $? -eq 0 ]; then
