@@ -42,6 +42,23 @@ function run(github, context, core) {
     ],
   };
 
+  // Update LANGUAGE_ALIASES to map to official identifiers
+  const LANGUAGE_ALIASES = {
+    c: "c-cpp",
+    "c++": "c-cpp",
+    cpp: "c-cpp",
+    "c#": "csharp",    
+    java: "java-kotlin",
+    kotlin: "java-kotlin",
+    typescript: "javascript-typescript",
+    javascript: "javascript-typescript",
+  };
+
+  // Resolve language alias before processing
+  function resolveLanguageAlias(language) {
+    return LANGUAGE_ALIASES[language] || language;
+  }
+
   const raw_filters = process.env.filters;
   const raw_projects = process.env.projects;
   const raw_queries = process.env.queries;
@@ -75,10 +92,11 @@ function run(github, context, core) {
   let projects_to_scan = {};
 
   // Filter out projects that don't have changes
-  for (const [language, lang_data] of Object.entries(projects)) {
-    core.debug("Language: " + language);
+  for (const [languageKey, lang_data] of Object.entries(projects)) {
+    const language = resolveLanguageAlias(languageKey);
+    core.debug("Resolved Language: " + language);
     core.debug("Projects: " + JSON.stringify(lang_data.projects));
-
+    
     projects_to_scan[language] = {};
 
     projects_to_scan[language]["projects"] = Object.fromEntries(
