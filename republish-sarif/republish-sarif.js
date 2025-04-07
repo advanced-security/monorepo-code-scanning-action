@@ -30,11 +30,32 @@ async function run(github, context, core) {
   const ref = context.payload.pull_request.base.ref;
 
   try {
-    analyses = await github.rest.codeScanning.listRecentAnalyses({
-      owner: context.repo.owner,
-      repo: context.repo.repo,
-      ref: ref,
-    });
+    // Initialize an empty array to collect all analyses
+    let allAnalyses = [];
+    let page = 1;
+    let hasNextPage = true;
+    
+    // Paginate through all analyses
+    while (hasNextPage) {
+      const response = await github.rest.codeScanning.listRecentAnalyses({
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        ref: ref,
+        per_page: 100,
+        page: page
+      });
+      
+      allAnalyses = allAnalyses.concat(response.data);
+      
+      // Check if there are more pages
+      if (response.data.length < 100) {
+        hasNextPage = false;
+      } else {
+        page++;
+      }
+    }
+    
+    analyses = { data: allAnalyses };
   } catch (error) {
     core.error(`Failed to list recent analyses: ${error}`);
     return;
