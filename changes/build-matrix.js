@@ -7,6 +7,163 @@ function run(github, context, core) {
   const allowed_build_modes = new Set(["auto", "none", "manual", "other"]);
   const other_err = 'setting as "other", which requires a fully manual scan with no automatic CodeQL analysis';
 
+  // Note: The CodeQL config filter pattern characters ?, +, [, ], ! are not supported and will be matched literal
+  // After extensive testing against JS in April 2015 - I would AVOID {} and [] globs as they are extremely limited support
+  const pathIgnoreDefaults = {
+    "javascript-typescript": [
+      "**/node_modules/**",
+      "**/bower_components/**",
+      "**/*.min.js",
+      "**/*-min.js",
+      "**/*.test.js",
+      "**/*.test.ts",
+      "**/*.test.jsx",
+      "**/*.test.tsx",
+      "**/*.spec.js",
+      "**/*.spec.ts",
+      "**/*.spec.jsx",
+      "**/*.spec.tsx",
+      "**/tests/**",
+      "**/jest.config.*",
+      "**/jest.setup.*",
+      "**/test-utils/**",
+      "**/coverage/**",
+      "**/CoverageResults/**",
+      "**/dist/**",
+      "**/3rd-party*/**",
+      "**/3rd_party*/**",
+      "**/third-party*/**",
+      "**/third_party*/**",
+      "**/3rd-Party*/**",
+      "**/3rd_Party*/**",
+      "**/Third-Party*/**",
+      "**/Third_Party*/**",
+      "**/vendor/**",
+      "**/.next/**",
+      "**/storybook-static/**",
+      "**/__tests__/**",
+      "**/__mocks__/**",
+      "**/cypress/**",
+    ],
+    "java-kotlin": [
+      "**/target/**",
+      "**/build/**",
+      "**/out/**",
+      "**/test/**",
+      "**/.gradle/**",
+      "**/3rd-party*/**",
+      "**/3rd_party*/**",
+      "**/third-party*/**",
+      "**/third_party*/**",
+      "**/3rd-Party*/**",
+      "**/3rd_Party*/**",
+      "**/Third-Party*/**",
+      "**/Third_Party*/**",
+      "**/vendor/**",
+      "**/generated/**",
+      "**/lib/**",
+      "**/libs/**",
+      "**/*Test.java",
+      "**/*Test.kt",
+      "**/*Tests.java",
+      "**/*Tests.kt",
+      "**/jacoco/**",
+      "**/surefire-reports/**",
+    ],
+    "python": [
+      "**/venv/**",
+      "**/__pycache__/**",
+      "**/test/**",
+      "**/tests/**",
+      "**/*.pyc",
+      "**/.tox/**",
+      "**/.pytest_cache/**",
+      "**/.coverage/**",
+      "**/htmlcov/**",
+      "**/3rd-party*/**",
+      "**/3rd_party*/**",
+      "**/third-party*/**",
+      "**/third_party*/**",
+      "**/3rd-Party*/**",
+      "**/3rd_Party*/**",
+      "**/Third-Party*/**",
+      "**/Third_Party*/**",
+      "**/vendor/**",
+      "**/.eggs/**",
+      "**/egg-info/**",
+      "**/dist/**",
+      "**/build/lib/**",
+      "**/*_test.py",
+      "**/conftest.py",
+    ],
+    "csharp": [
+      "**/bin/**",
+      "**/obj/**",
+      "**/test/**",
+      "**/tests/**",
+      "**/wwwroot/lib/**",
+      "**/CoverageResults/**",
+      "**/TestResults/**",
+      "**/3rd-party*/**",
+      "**/3rd_party*/**",
+      "**/third-party*/**",
+      "**/third_party*/**",
+      "**/3rd-Party*/**",
+      "**/3rd_Party*/**",
+      "**/Third-Party*/**",
+      "**/Third_Party*/**",
+      "**/vendor/**",
+      "**/*.test.cs",
+      "**/*.tests.cs",
+      "**/*.Test.cs",
+      "**/*.Tests.cs",
+      "**/*Test.cs",
+      "**/*Tests.cs",
+      "**/packages/**",
+      "**/_ReSharper*/**",
+      "**/artifacts/**",
+      "**/.vs/**",
+    ],
+    "ruby": [
+      "**/vendor/**",
+      "**/test/**",
+      "**/spec/**",
+      "**/3rd-party*/**",
+      "**/3rd_party*/**",
+      "**/third-party*/**",
+      "**/third_party*/**",
+      "**/3rd-Party*/**",
+      "**/3rd_Party*/**",
+      "**/Third-Party*/**",
+      "**/Third_Party*/**",
+      "**/bundle/**",
+      "**/coverage/**",
+      "**/.bundle/**",
+      "**/tmp/**",
+      "**/log/**",
+      "**/db/migrate/**",
+    ],
+    "c-cpp": [
+      "**/build/**",
+      "**/test/**",
+      "**/tests/**",
+      "**/*_test.c",
+      "**/*_test.cpp",
+      "**/*_test.cc",
+      "**/*_test.h",
+      // Unclear if CPP build mode none would prefer to have these
+      // "**/tmp/**",
+      // "**/{3rd,Third,third}{_,-}{Party,party}*/**",
+      // "**/vendor/**",
+      // "**/deps/**",
+      // "**/external/**",
+      // "**/lib/**",
+      // "**/libs/**",
+      // "**/unity/**",
+      // "**/googletest/**",
+    ],
+  };
+
   const top_level_files = {
     "java-kotlin": [
       "pom.xml",
@@ -47,7 +204,7 @@ function run(github, context, core) {
     c: "c-cpp",
     "c++": "c-cpp",
     cpp: "c-cpp",
-    "c#": "csharp",    
+    "c#": "csharp",
     java: "java-kotlin",
     kotlin: "java-kotlin",
     typescript: "javascript-typescript",
@@ -96,7 +253,7 @@ function run(github, context, core) {
     const language = resolveLanguageAlias(languageKey);
     core.debug("Resolved Language: " + language);
     core.debug("Projects: " + JSON.stringify(lang_data.projects));
-    
+
     projects_to_scan[language] = {};
 
     projects_to_scan[language]["projects"] = Object.fromEntries(
@@ -166,10 +323,18 @@ function run(github, context, core) {
         paths: Array.from(project_paths)
       });
 
-      if (project_queries !== null && project_queries.size > 0) {
-        project_config.queries = Array.from(project_queries).map((query) => { return {uses: query} })
+      // Apply paths-ignore: use existing if available, otherwise use defaults for the language
+      if (!project_config["paths-ignore"] && pathIgnoreDefaults[language]) {
+        // The yaml library will handle the quoting, but we need to make sure the strings are preserved as is
+        project_config["paths-ignore"] = pathIgnoreDefaults[language];
+      } else if (build_mode === "none" && !project_config["paths-ignore"] && !pathIgnoreDefaults[language]) {
+        core.warning(`${language} with build-mode: none, paths-ignore filters are recommended here to ignore test/vendored dependencies!`);
       }
-      
+
+      if (project_queries !== null && project_queries.size > 0) {
+        project_config.queries = Array.from(project_queries).map((query) => { return { uses: query } })
+      }
+
       const codeql_config_yaml = yaml.stringify(project_config);
 
       const sparse_checkout_str = Array.from(project_paths).join("\n");

@@ -164,7 +164,7 @@ If you pass a global `queries` input, as a comma separated list of strings, it a
 
 Similarly, you can pass in a global `config` or `config-file` input, which use the same format as  [documented here](https://docs.github.com/en/enterprise-cloud@latest/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning#using-a-custom-configuration-file) and [here](https://docs.github.com/en/enterprise-cloud@latest/code-security/code-scanning/creating-an-advanced-setup-for-code-scanning/customizing-your-advanced-setup-for-code-scanning#specifying-configuration-details-using-the-config-input). This _cannot_ currently be set at the language or project level, only globally.
 
-The effective config used is a combination of the inputs created from the paths of the project, and any queries set in the separate `queries` input to this Action, overlaid with the content of the `config` or `config-file` inputs.
+The effective config used is a combination of the inputs created from the `paths` of the project, and any queries set in the separate `queries` input to this Action, overlaid with the content of the `config` or `config-file` inputs. The `paths-ignore` will be used if passed in from the config input, otherwise a set of opinionated predetermined paths to ignore will be applied.
 
 ### Whole repo scanning
 
