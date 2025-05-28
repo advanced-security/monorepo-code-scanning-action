@@ -290,12 +290,14 @@ function run(github, context, core) {
 
       // add any individual files to the list of paths to scan
       if (project_data.files !== undefined) {
-        project_paths.add(...project_data.files);
+        project_data.files.forEach(file => project_paths.add(file));
       }
+
+      core.debug(`Project: ${name}, Paths: ${Array.from(project_paths)}`);
 
       // add the top-level files to the list of paths to scan
       if (top_level_files[language] !== undefined) {
-        project_paths.add(...top_level_files[language]);
+        top_level_files[language].forEach(file => project_paths.add(file));
       }
 
       let build_mode = project_data["build-mode"] ?? lang_build_mode;
