@@ -13,6 +13,11 @@ runs:
           .github/workflows/**/*
         sparse-checkout-cone-mode: false
 
+    - name: Set scan to non-diff-informed
+      run: |
+        echo "CODEQL_ACTION_DIFF_INFORMED_QUERIES=false" >> $GITHUB_ENV
+      shell: bash
+
     # Initializes CodeQL for scanning, if required
     - name: Initialize CodeQL (build mode none/auto)
       if: matrix.project.build_mode == 'none' || matrix.project.build_mode == 'auto'
