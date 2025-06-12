@@ -20,7 +20,7 @@ runs:
 
     # Initializes CodeQL for scanning, if required
     - name: Initialize CodeQL (build mode none/auto)
-      if: matrix.project.build_mode == 'none' || matrix.project.build_mode == 'auto'
+      if: matrix.project.build_mode == 'none' || matrix.project.build_mode == 'autobuild'
       uses: github/codeql-action/init@v3
       with:
         languages: ${{ matrix.project.language }}
