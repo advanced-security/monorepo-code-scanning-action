@@ -4,7 +4,7 @@ const yaml = require("yaml");
 function run(github, context, core) {
   const build_mode_none_languages = new Set(["csharp", "java", "python", "javascript-typescript", "ruby"]);
   const auto_build_languages = new Set(["go", "java-kotlin", "cpp", "swift"]);
-  const allowed_build_modes = new Set(["auto", "none", "manual", "other"]);
+  const allowed_build_modes = new Set(["auto", "autobuild", "none", "manual", "other"]);
   const other_err = 'setting as "other", which requires a fully manual scan with no automatic CodeQL analysis';
 
   // Note: The CodeQL config filter pattern characters ?, +, [, ], ! are not supported and will be matched literal
@@ -308,7 +308,7 @@ function run(github, context, core) {
         if (build_mode_none_languages.has(language)) {
           build_mode = "none";
         } else if (auto_build_languages.has(language)) {
-          build_mode = "auto";
+          build_mode = "autobuild";
         } else {
           core.warning(`No build-mode set for project: ${language}/${name}, ${other_err}`);
           build_mode = "other";
@@ -318,6 +318,11 @@ function run(github, context, core) {
           core.error(`Invalid build-mode set for project: ${language}/${name}, ${other_err}`);
           build_mode = "other";
         }
+      }
+
+      // change 'auto' to 'autobuild' for consistency
+      if (build_mode === "auto") {
+        build_mode = "autobuild";
       }
 
       let project_config = global_config;
