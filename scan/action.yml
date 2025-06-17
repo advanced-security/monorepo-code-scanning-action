@@ -82,6 +82,7 @@ runs:
     # Annotate the SARIF file tags to include the monorepo's current project name
     - name: Annotate CodeQL Alert SARIF with Project tag
       id: annotate-sarif
+      if: matrix.project.build_mode != 'other'
       uses: actions/github-script@v7
       env:
         project: ${{ matrix.project.name }}
