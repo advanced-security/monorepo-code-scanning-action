@@ -362,10 +362,25 @@ function run(github, context, core) {
   core.debug("Projects list:");
   core.debug(JSON.stringify(filtered_projects));
 
+  // Build all projects list for republishing (includes unchanged projects)
+  const all_projects = [];
+  for (const [language, lang_data] of Object.entries(projects)) {
+    const lang_build_mode = lang_data["build-mode"];
+    const lang_queries = lang_data.queries;
+    
+    for (const [name, project_data] of Object.entries(lang_data.projects)) {
+      all_projects.push({
+        name: name,
+        language: resolveLanguageAlias(language)
+      });
+    }
+  }
+
   const result = {
     projects: Array.from(filtered_projects),
     length: filtered_projects.length,
     languages: Array.from(filtered_languages),
+    all_projects: all_projects,
   };
 
   core.debug("Result:");

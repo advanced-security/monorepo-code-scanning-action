@@ -19,27 +19,11 @@ async function run(github, context, core) {
   if (mode === 'upload') {
     core.info("Running in upload mode, uploading SARIF files");
     return await uploadSarifFiles(github, context, core);
-  } else if (mode === 'download') {
-    core.info("Running in download mode, downloading SARIF files from previous analyses");
-    return await downloadSarifFiles(github, context, core);
-  } else {
-    core.error(`Unknown SARIF mode: ${mode}. Expected 'download' or 'upload'.`);
-    return;
-  }
-}
-
-async function downloadSarifFiles(github, context, core) {
-  let projectsEnv = process.env.projects;
-  let projects;
-  const sarifDir = process.env.SARIF_DIR || './sarif';
-
-  if (!projectsEnv) {
-    core.error("Environment variable 'projects' is not set. Cannot proceed with downloading SARIF files.");
-    return;
   }
 
+  let projectsData;
   try {
-    projects = JSON.parse(projectsEnv);
+    projectsData = JSON.parse(projectsEnv);
   } catch (error) {
     core.error(
       `Failed to parse projects, JSON error (${error}): \n\n${projectsEnv}`
@@ -47,10 +31,15 @@ async function downloadSarifFiles(github, context, core) {
     return;
   }
 
+  const projects = projectsData.projects || [];
+  const allProjects = projectsData.all_projects || [];
+
   const scannedCategories = new Set();
+  const validCategories = new Set();
 
   // TODO: needs to be generalized to support non-CodeQL code scanning tools, which can't be identified just by the language
-  for (const project of Object.entries(projects)) {
+  // Build set of categories that were scanned in this PR
+  for (const project of projects) {
     const language = project.language;
     const name = project.name;
 
@@ -59,6 +48,18 @@ async function downloadSarifFiles(github, context, core) {
     }
 
     scannedCategories.add(`/language:${language};project:${name}`);
+  }
+
+  // Build set of all valid categories from currently defined projects
+  for (const project of allProjects) {
+    const language = project.language;
+    const name = project.name;
+
+    if (language === "") {
+      continue;
+    }
+
+    validCategories.add(`/language:${language};project:${name}`);
   }
 
   let analyses;
@@ -101,9 +102,9 @@ async function downloadSarifFiles(github, context, core) {
 
   core.debug(`Analyses for ${ref}: ${JSON.stringify(analyses)}`);
 
-  // keep only categories that are not being scanned now
+  // keep only categories that are not being scanned now AND are valid current projects
   const analysesOfMissingCategories = analyses.data.filter((analysis) => {
-    return !scannedCategories.has(analysis.category);
+    return !scannedCategories.has(analysis.category) && validCategories.has(analysis.category);
   });
 
   core.debug(`Analyses of missing categories: ${JSON.stringify(analysesOfMissingCategories)}`);

@@ -1,5 +1,9 @@
 name: Scan
 description: 'Analyze a project in a monorepo'
+inputs:
+  tools:
+    description: 'Path to CodeQL tools bundle (optional)'
+    required: false
 
 runs:
   using: 'composite'
@@ -26,6 +30,7 @@ runs:
         languages: ${{ matrix.project.language }}
         build-mode: ${{ matrix.project.build_mode }}
         config: ${{  matrix.project.codeql_config }}
+        tools: ${{ inputs.tools }}
 
     # Show manual Action, if using manual/other build mode
     - name: Initialize CodeQL and build (manual)
