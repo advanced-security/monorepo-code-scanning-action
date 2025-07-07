@@ -15,11 +15,13 @@ runs:
   using: 'composite'
   steps:
     # Download SARIF files from previous analyses (for missing categories)
-    - uses: actions/github-script@v7
+    - name: Download SARIF files from target
+      uses: actions/github-script@v7
       if: github.event_name == 'pull_request' && ( inputs.merged-only == false || github.event.pull_request.merged == true )
       env:
         projects: ${{ inputs.projects }}
         SARIF_MODE: 'download'
+        SARIF_DIR: './sarif'
       with:
         script: |
           const path = require('node:path')
@@ -43,7 +45,7 @@ runs:
           // Override context for PR upload
           const prContext = {
             ...context,
-            sha: context.payload.pull_request.head.sha,
+            sha: github.sha,
             ref: `refs/pull/${context.payload.pull_request.number}/merge`
           }
           

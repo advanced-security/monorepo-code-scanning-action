@@ -17,15 +17,32 @@ async function run(github, context, core) {
   const mode = process.env.SARIF_MODE || 'download';
   
   if (mode === 'upload') {
+    core.info("Running in upload mode, uploading SARIF files");
     return await uploadSarifFiles(github, context, core);
+  } else if (mode === 'download') {
+    core.info("Running in download mode, downloading SARIF files from previous analyses");
+    return await downloadSarifFiles(github, context, core);
+  } else {
+    core.error(`Unknown SARIF mode: ${mode}. Expected 'download' or 'upload'.`);
+    return;
+  }
+}
+
+async function downloadSarifFiles(github, context, core) {
+  let projectsEnv = process.env.projects;
+  let projects;
+  const sarifDir = process.env.SARIF_DIR || './sarif';
+
+  if (!projectsEnv) {
+    core.error("Environment variable 'projects' is not set. Cannot proceed with downloading SARIF files.");
+    return;
   }
 
-  let projects;
   try {
-    projects = JSON.parse(process.env.projects);
+    projects = JSON.parse(projectsEnv);
   } catch (error) {
     core.error(
-      `Failed to parse projects, JSON error (${error}): \n\n${process.env.projects}`
+      `Failed to parse projects, JSON error (${error}): \n\n${projectsEnv}`
     );
     return;
   }
@@ -139,7 +156,7 @@ async function run(github, context, core) {
           },
         });
         fs.writeFileSync(
-          `sarif/${escapeForFilename(analysis.category)}.sarif`,
+          `${sarifDir}/${escapeForFilename(analysis.category)}.sarif`,
           JSON.stringify(sarif.data)
         );
         core.info(`Downloaded SARIF for ${analysis.category}`);
@@ -217,8 +234,8 @@ async function uploadSarifFiles(github, context, core) {
   core.info(`Found ${sarifFiles.length} SARIF files to upload`);
 
   // Get commit SHA and ref from context
-  const commitSha = context.sha || context.payload.head_commit?.id;
-  const ref = context.ref || `refs/heads/${context.payload.repository?.default_branch || 'main'}`;
+  const commitSha = context.sha;
+  const ref = context.ref;
   
   if (!commitSha) {
     core.error("Could not determine commit SHA for upload");
