@@ -46,6 +46,9 @@ runs:
           const path = require('node:path')
           const action_path = process.env.GITHUB_ACTION_PATH
           const script = require(path.join(action_path, 'republish-sarif.js'))
+
+          core.debug(github)
+          core.debug(context)
           
           // Override context for PR upload
           const prContext = {
