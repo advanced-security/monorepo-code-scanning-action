@@ -30,6 +30,12 @@ async function run(github, context, core) {
 
 async function downloadSarifFiles(github, context, core) {
   const sarifDir = process.env.SARIF_DIR || './sarif';
+  const projectsEnv = process.env.projects;
+
+  if (!projectsEnv) {
+    core.error("Environment variable 'projects' is not set. Cannot proceed with download.");
+    return;
+  }
 
   let projectsData;
   try {
