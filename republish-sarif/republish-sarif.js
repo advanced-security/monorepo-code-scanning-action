@@ -1,6 +1,24 @@
 const fs = require("fs");
 
+/**
+ * Main function to handle SARIF operations
+ * 
+ * Modes:
+ * - 'download' (default): Downloads SARIF files from previous analyses (PR scenario)
+ * - 'upload': Uploads SARIF files to GitHub Code Scanning (merge scenario)
+ * 
+ * Environment variables:
+ * - SARIF_MODE: 'download' or 'upload'
+ * - SARIF_DIR: Directory containing SARIF files (for upload mode, default: './sarif')
+ * - projects: JSON string of projects being scanned (for download mode)
+ */
 async function run(github, context, core) {
+  // Determine operation mode: 'download' for PR scenario, 'upload' for merge scenario
+  const mode = process.env.SARIF_MODE || 'download';
+  
+  if (mode === 'upload') {
+    return await uploadSarifFiles(github, context, core);
+  }
 
   let projects;
   try {
@@ -27,7 +45,10 @@ async function run(github, context, core) {
   }
 
   let analyses;
-  const ref = context.payload.pull_request.base.ref;
+  // Handle both PR and non-PR contexts
+  const ref = context.payload.pull_request?.base?.ref || 
+              context.ref || 
+              `refs/heads/${context.payload.repository?.default_branch || 'main'}`;
 
   try {
     // Initialize an empty array to collect all analyses
@@ -105,23 +126,28 @@ async function run(github, context, core) {
     }
   }
 
-  analysesToDownload.forEach(async (analysis) => {
+  // Download analyses in parallel
+  await Promise.all(analysesToDownload.map(async (analysis) => {
     if (analysis) {
-      const sarif = await github.rest.codeScanning.getAnalysis({
-        owner: context.repo.owner,
-        repo: context.repo.repo,
-        analysis_id: analysis.id,
-        headers: {
-          Accept: "application/sarif+json",
-        },
-      });
-      fs.writeFileSync(
-        `sarif/${escapeForFilename(analysis.category)}.sarif`,
-        JSON.stringify(sarif.data)
-      );
-      core.info(`Downloaded SARIF for ${analysis.category}`);
+      try {
+        const sarif = await github.rest.codeScanning.getAnalysis({
+          owner: context.repo.owner,
+          repo: context.repo.repo,
+          analysis_id: analysis.id,
+          headers: {
+            Accept: "application/sarif+json",
+          },
+        });
+        fs.writeFileSync(
+          `sarif/${escapeForFilename(analysis.category)}.sarif`,
+          JSON.stringify(sarif.data)
+        );
+        core.info(`Downloaded SARIF for ${analysis.category}`);
+      } catch (error) {
+        core.error(`Failed to download SARIF for ${analysis.category}: ${error.message}`);
+      }
     }
-  });
+  }));
 }
 
 function escapeForFilename(category) {
@@ -131,21 +157,126 @@ function escapeForFilename(category) {
 function onTargetOfPR(analysis, context, core) {
   try {
     const analysis_ref = analysis.ref;
-    const pr_base_ref = context.payload.pull_request.base.ref;
+    
+    // Handle PR context
+    if (context.payload.pull_request) {
+      const pr_base_ref = context.payload.pull_request.base.ref;
 
-    if (analysis_ref === pr_base_ref) {
-      return true;
-    }
+      if (analysis_ref === pr_base_ref) {
+        return true;
+      }
 
-    if (analysis_ref.startsWith("refs/heads/") && !pr_base_ref.startsWith("refs/heads/")) {
-      const analysis_ref_short = analysis_ref.substring("refs/heads/".length);
-      return pr_base_ref === analysis_ref_short;
+      if (analysis_ref.startsWith("refs/heads/") && !pr_base_ref.startsWith("refs/heads/")) {
+        const analysis_ref_short = analysis_ref.substring("refs/heads/".length);
+        return pr_base_ref === analysis_ref_short;
+      }
+    } else {
+      // Handle non-PR context (push to branch)
+      const current_ref = context.ref || `refs/heads/${context.payload.repository?.default_branch || 'main'}`;
+      
+      if (analysis_ref === current_ref) {
+        return true;
+      }
+
+      // Handle cases where refs might be in different formats
+      if (analysis_ref.startsWith("refs/heads/") && !current_ref.startsWith("refs/heads/")) {
+        const analysis_ref_short = analysis_ref.substring("refs/heads/".length);
+        return current_ref === analysis_ref_short;
+      }
+      
+      if (!analysis_ref.startsWith("refs/heads/") && current_ref.startsWith("refs/heads/")) {
+        const current_ref_short = current_ref.substring("refs/heads/".length);
+        return analysis_ref === current_ref_short;
+      }
     }
+    
+    return false;
   } catch(error) {
-    core.error(`Failed to determine if analysis is on target of PR: ${error}`);
+    core.error(`Failed to determine if analysis is on target: ${error}`);
     core.error(`Analysis: ${JSON.stringify(analysis)}`);
     core.error(`Context: ${JSON.stringify(context)}`);
     return false;
+  }
+}
+
+async function uploadSarifFiles(github, context, core) {
+  const sarifDir = process.env.SARIF_DIR || './sarif';
+  
+  if (!fs.existsSync(sarifDir)) {
+    core.warning(`SARIF directory ${sarifDir} does not exist, exiting`);
+    return;
+  }
+
+  const sarifFiles = fs.readdirSync(sarifDir).filter(file => file.endsWith('.sarif'));
+  
+  if (sarifFiles.length === 0) {
+    core.warning("No SARIF files found to upload, exiting");
+    return;
+  }
+
+  core.info(`Found ${sarifFiles.length} SARIF files to upload`);
+
+  // Get commit SHA and ref from context
+  const commitSha = context.sha || context.payload.head_commit?.id;
+  const ref = context.ref || `refs/heads/${context.payload.repository?.default_branch || 'main'}`;
+  
+  if (!commitSha) {
+    core.error("Could not determine commit SHA for upload");
+    return;
+  }
+
+  core.info(`Uploading to ref: ${ref}, commit: ${commitSha}`);
+
+  for (const sarifFile of sarifFiles) {
+    const filePath = `${sarifDir}/${sarifFile}`;
+    
+    try {
+      const sarifContent = fs.readFileSync(filePath, 'utf8');
+      const sarifData = JSON.parse(sarifContent);
+      
+      // Ensure SARIF has required properties for upload
+      if (!sarifData.runs || sarifData.runs.length === 0) {
+        core.warning(`SARIF file ${sarifFile} has no runs, skipping upload`);
+        continue;
+      }
+
+      core.info(`Uploading SARIF file: ${sarifFile}`);
+      
+      // Prepare upload payload
+      const uploadPayload = {
+        owner: context.repo.owner,
+        repo: context.repo.repo,
+        commit_sha: commitSha,
+        ref: ref,
+        sarif: Buffer.from(sarifContent).toString('base64'),
+        checkout_uri: `https://github.com/${context.repo.owner}/${context.repo.repo}`,
+        started_at: new Date().toISOString()
+      };
+      
+      // Add tool name if available
+      const toolName = sarifData.runs[0]?.tool?.driver?.name;
+      if (toolName) {
+        uploadPayload.tool_name = toolName;
+      }
+      
+      const uploadResponse = await github.rest.codeScanning.uploadSarif(uploadPayload);
+
+      core.info(`Successfully uploaded SARIF file ${sarifFile}, upload ID: ${uploadResponse.data.id}`);
+      
+      // Wait a bit between uploads to avoid rate limiting
+      if (sarifFiles.indexOf(sarifFile) < sarifFiles.length - 1) {
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+    } catch (error) {
+      core.error(`Failed to upload SARIF file ${sarifFile}: ${error.message}`);
+      
+      // Log more details if available
+      if (error.response) {
+        core.error(`HTTP Status: ${error.response.status}`);
+        core.error(`Response: ${JSON.stringify(error.response.data)}`);
+      }
+    }
   }
 }
 
