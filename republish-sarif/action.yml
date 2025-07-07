@@ -10,6 +10,11 @@ inputs:
     required: false
     type: boolean
     default: false
+  sarif-dir:
+    description: 'Directory where SARIF files are stored'
+    required: false
+    type: string
+    default: './sarif'
 
 runs:
   using: 'composite'
@@ -17,11 +22,11 @@ runs:
     # Download SARIF files from previous analyses (for missing categories)
     - name: Download SARIF files from target
       uses: actions/github-script@v7
-      if: github.event_name == 'pull_request' && ( inputs.merged-only == false || github.event.pull_request.merged == true )
+      if: github.event_name == 'pull_request' && ( inputs.merged-only == 'false' || github.event.pull_request.merged == true )
       env:
         projects: ${{ inputs.projects }}
         SARIF_MODE: 'download'
-        SARIF_DIR: './sarif'
+        SARIF_DIR: ${{ inputs.sarif-dir }}
       with:
         script: |
           const path = require('node:path')
@@ -32,10 +37,10 @@ runs:
     # Scenario 1: PR mode - upload SARIF files via GitHub API to the PR itself
     - name: Upload SARIF files to PR
       uses: actions/github-script@v7
-      if: github.event_name == 'pull_request' && github.event.pull_request.merged != true && hashFiles('sarif/*.sarif') != ''
+      if: github.event_name == 'pull_request' && github.event.pull_request.merged != true && hashFiles(format('{0}/*.sarif', inputs.sarif-dir)) != ''
       env:
         SARIF_MODE: 'upload'
-        SARIF_DIR: './sarif'
+        SARIF_DIR: ${{ inputs.sarif-dir }}
       with:
         script: |
           const path = require('node:path')
@@ -54,10 +59,10 @@ runs:
     # Scenario 2: Merged mode - upload SARIF files via GitHub API to the PR target
     - name: Upload SARIF files to PR target
       uses: actions/github-script@v7
-      if: github.event.pull_request.merged == true && hashFiles('sarif/*.sarif') != ''
+      if: github.event.pull_request.merged == true && hashFiles(format('{0}/*.sarif', inputs.sarif-dir)) != ''
       env:
         SARIF_MODE: 'upload'
-        SARIF_DIR: './sarif'
+        SARIF_DIR: ${{ inputs.sarif-dir }}
       with:
         script: |
           const path = require('node:path')
