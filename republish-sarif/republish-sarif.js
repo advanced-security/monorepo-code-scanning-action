@@ -19,7 +19,17 @@ async function run(github, context, core) {
   if (mode === 'upload') {
     core.info("Running in upload mode, uploading SARIF files");
     return await uploadSarifFiles(github, context, core);
+  } else if (mode === 'download') {
+    core.info("Running in download mode, downloading SARIF files from previous analyses");
+    return await downloadSarifFiles(github, context, core);
+  } else {
+    core.error(`Unknown SARIF mode: ${mode}. Expected 'download' or 'upload'.`);
+    return;
   }
+}
+
+async function downloadSarifFiles(github, context, core) {
+  const sarifDir = process.env.SARIF_DIR || './sarif';
 
   let projectsData;
   try {
