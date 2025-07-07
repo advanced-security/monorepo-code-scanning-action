@@ -31,6 +31,7 @@ async function run(github, context, core) {
 
 async function downloadSarifFiles(github, context, core) {
   const sarifDir = process.env.SARIF_DIR || './sarif';
+  fs.mkdirSync(sarifDir, { recursive: true });
   const projectsEnv = process.env.projects;
 
   if (!projectsEnv) {
