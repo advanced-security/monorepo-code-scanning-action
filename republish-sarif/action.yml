@@ -50,12 +50,8 @@ runs:
           core.debug(github)
           core.debug(context)
           
-          // Override context for PR upload
-          const prContext = {
-            ...context,
-            sha: github.sha,
-            ref: `refs/pull/${context.payload.pull_request.number}/merge`
-          }
+          // Don't need to override context for PR upload - they are already set correctly
+          const prContext = context;
           
           script(github, prContext, core)
 
