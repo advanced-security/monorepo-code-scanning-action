@@ -1,4 +1,5 @@
 const fs = require("fs");
+const zlib = require("zlib");
 
 /**
  * Main function to handle SARIF operations
@@ -282,7 +283,7 @@ async function uploadSarifFiles(github, context, core) {
         repo: context.repo.repo,
         commit_sha: commitSha,
         ref: ref,
-        sarif: Buffer.from(sarifContent).toString('base64'),
+        sarif: zlib.gzipSync(Buffer.from(sarifContent, 'utf8')).toString('base64'),
         checkout_uri: `https://github.com/${context.repo.owner}/${context.repo.repo}`,
         started_at: new Date().toISOString()
       };
