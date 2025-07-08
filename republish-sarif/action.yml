@@ -10,14 +10,23 @@ inputs:
     required: false
     type: boolean
     default: false
+  sarif-dir:
+    description: 'Directory where SARIF files are stored'
+    required: false
+    type: string
+    default: './sarif'
 
 runs:
   using: 'composite'
   steps:
-    - uses: actions/github-script@v7
-      if: github.event_name == 'pull_request' && ( inputs.merged_only == false || github.event.pull_request.merged == true )
+    # Download SARIF files from previous analyses (for missing categories)
+    - name: Download SARIF files from target
+      uses: actions/github-script@v7
+      if: github.event_name == 'pull_request' && ( inputs.merged-only == 'false' || github.event.pull_request.merged == true )
       env:
         projects: ${{ inputs.projects }}
+        SARIF_MODE: 'download'
+        SARIF_DIR: ${{ inputs.sarif-dir }}
       with:
         script: |
           const path = require('node:path')
@@ -27,96 +36,40 @@ runs:
 
     # Scenario 1: PR mode - upload SARIF files via GitHub API to the PR itself
     - name: Upload SARIF files to PR
-      if: github.event_name == 'pull_request' && github.event.pull_request.merged != true && hashFiles('sarif/*.sarif') != ''
-      shell: bash
+      uses: actions/github-script@v7
+      if: github.event_name == 'pull_request' && github.event.pull_request.merged != true && hashFiles(format('{0}/*.sarif', inputs.sarif-dir)) != ''
       env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        echo "Uploading SARIF files to PR via GitHub API"
-        
-        # Count SARIF files
-        SARIF_COUNT=$(find sarif -name "*.sarif" | wc -l)
-        echo "Found $SARIF_COUNT SARIF files to upload"
-        
-        # Get repository information
-        REPO_OWNER="${GITHUB_REPOSITORY%/*}"
-        REPO_NAME="${GITHUB_REPOSITORY#*/}"
-        
-        # Upload each SARIF file individually
-        for SARIF_FILE in sarif/*.sarif; do
-          echo "Processing $SARIF_FILE"
+        SARIF_MODE: 'upload'
+        SARIF_DIR: ${{ inputs.sarif-dir }}
+      with:
+        script: |
+          const path = require('node:path')
+          const action_path = process.env.GITHUB_ACTION_PATH
+          const script = require(path.join(action_path, 'republish-sarif.js'))
           
-          # Compress and base64 encode the SARIF file
-          ENCODED_SARIF=$(gzip -c "$SARIF_FILE" | base64 -w0)
+          // Don't need to override context for PR upload - they are already set correctly
+          const prContext = context;
           
-          echo "Uploading $(basename "$SARIF_FILE") to PR"
-          
-          # Upload to PR - Using GITHUB_SHA which is the merge commit for PRs
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/$REPO_OWNER/$REPO_NAME/code-scanning/sarifs \
-            -f "ref=refs/pull/${{ github.event.pull_request.number }}/merge" \
-            -f "commit_sha=${{ github.sha }}" \
-            -f "sarif=$ENCODED_SARIF"
-          
-          if [ $? -eq 0 ]; then
-            echo "✓ Successfully uploaded $(basename "$SARIF_FILE")"
-          else
-            echo "✗ Failed to upload $(basename "$SARIF_FILE")"
-          fi
-          
-          # Add a small delay between uploads
-          sleep 1
-        done
+          script(github, prContext, core)
 
     # Scenario 2: Merged mode - upload SARIF files via GitHub API to the PR target
-    # if we're in merged mode, upload to the PR target
-    # this uses the HEAD SHA of the PR, which is the same as the merge commit SHA
-    # if "require PRs to be up to date before merging" is enabled
-    # otherwise, we have a hard time determining what the commit SHA of the merge commit is
     - name: Upload SARIF files to PR target
-      if: github.event.pull_request.merged == true && hashFiles('sarif/*.sarif') != ''
-      shell: bash
+      uses: actions/github-script@v7
+      if: github.event.pull_request.merged == true && hashFiles(format('{0}/*.sarif', inputs.sarif-dir)) != ''
       env:
-        GH_TOKEN: ${{ github.token }}
-      run: |
-        echo "Uploading SARIF files to PR target via GitHub API"
-        
-        # Count SARIF files
-        SARIF_COUNT=$(find sarif -name "*.sarif" | wc -l)
-        echo "Found $SARIF_COUNT SARIF files to upload"
-        
-        # Get repository information
-        REPO_OWNER="${GITHUB_REPOSITORY%/*}"
-        REPO_NAME="${GITHUB_REPOSITORY#*/}"
-        
-        # Upload each SARIF file individually
-        for SARIF_FILE in sarif/*.sarif; do
-          echo "Processing $SARIF_FILE"
+        SARIF_MODE: 'upload'
+        SARIF_DIR: ${{ inputs.sarif-dir }}
+      with:
+        script: |
+          const path = require('node:path')
+          const action_path = process.env.GITHUB_ACTION_PATH
+          const script = require(path.join(action_path, 'republish-sarif.js'))
           
-          # Compress and base64 encode the SARIF file
-          ENCODED_SARIF=$(gzip -c "$SARIF_FILE" | base64 -w0)
+          // Override context for target branch upload
+          const targetContext = {
+            ...context,
+            sha: context.payload.pull_request.head.sha,
+            ref: `refs/heads/${context.payload.pull_request.base.ref}`
+          }
           
-          echo "Uploading $(basename "$SARIF_FILE") to target branch"
-          
-          # Upload to PR target
-          gh api \
-            --method POST \
-            -H "Accept: application/vnd.github+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            /repos/$REPO_OWNER/$REPO_NAME/code-scanning/sarifs \
-            -f "commit_sha=${{ github.event.pull_request.head.sha }}" \
-            -f "ref=refs/heads/${{ github.event.pull_request.base.ref }}" \
-            -f "sarif=$ENCODED_SARIF"
-          
-          if [ $? -eq 0 ]; then
-            echo "✓ Successfully uploaded $(basename "$SARIF_FILE")"
-          else
-            echo "✗ Failed to upload $(basename "$SARIF_FILE")"
-          fi
-          
-          # Add a small delay between uploads
-          sleep 1
-        done
+          script(github, targetContext, core)
