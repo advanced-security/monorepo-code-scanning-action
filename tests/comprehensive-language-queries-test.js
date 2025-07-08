@@ -3,6 +3,21 @@ const context = undefined;
 const core = require("@actions/core");
 core.debug = () => {};
 
+/**
+ * Comprehensive test for language-level queries functionality
+ * 
+ * This test validates that the fix for issue #57 is working correctly.
+ * 
+ * Issue #57: Language-level queries in projects.json are ignored unless set at project level
+ * 
+ * The tests cover:
+ * 1. Language-level queries are applied when no project-level queries exist
+ * 2. Project-level queries properly override language-level queries  
+ * 3. Language-level queries properly override global queries
+ * 4. Global queries are used as fallback when no other queries specified
+ * 5. No queries section appears when no queries are specified
+ */
+
 console.log("Testing language-level queries functionality...\n");
 
 // Test 1: Language-level queries should be applied when no project-level queries
