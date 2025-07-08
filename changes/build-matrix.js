@@ -268,6 +268,10 @@ function run(github, context, core) {
     if (lang_data["build-mode"] !== undefined) {
       projects_to_scan[language]["build-mode"] = lang_data["build-mode"];
     }
+
+    if (lang_data["queries"] !== undefined) {
+      projects_to_scan[language]["queries"] = lang_data["queries"];
+    }
   }
 
   core.debug("Projects to scan:");
