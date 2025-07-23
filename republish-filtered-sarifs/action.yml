@@ -1,0 +1,117 @@
+# .github/actions/republish-filtered-sarifs/action.yml
+
+name: Download & Republish Filtered SARIFs
+description: 'Downloads Code Scanning SARIF files, excludes a specified category, uploads them as an artifact, and then republishes the remaining to the PR/target branch.'
+inputs:
+  excluded-category:
+    description: 'The single CodeQL category string to exclude from the download and republish (e.g., /language:java;project:backend-service).'
+    required: true
+    type: string
+  target-ref:
+    description: 'The Git reference (branch, tag, or SHA) from which to download analyses (e.g., refs/heads/main).'
+    required: false
+    type: string
+    default: 'refs/heads/main' # Default to main branch if not specified
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Run SARIF Download Script
+      uses: actions/github-script@v7
+      env:
+        EXCLUDED_CATEGORY_INPUT: ${{ inputs.excluded-category }}
+        TARGET_REF_INPUT: ${{ inputs.target-ref }}
+      with:
+        script: |
+          const scriptPath = `${process.env.GITHUB_ACTION_PATH}/download_filtered_sarifs.js`;
+          const script = require(scriptPath);
+          script(github, context, core);
+        github-token: ${{ github.token }}
+
+    - name: Upload Downloaded SARIFs as Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: filtered-sarif-downloads
+        path: sarif_downloads/
+        if-no-files-found: ignore
+
+    # Scenario 1: PR mode - upload SARIF files via GitHub API to the PR itself
+    - name: Upload Filtered SARIF files to PR Code Scanning
+      if: github.event_name == 'pull_request' && github.event.pull_request.merged != true && hashFiles('sarif_downloads/*.sarif') != ''
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+      run: |
+        set -x # Keep debugging enabled for now, can remove after successful run
+
+        echo "Uploading filtered SARIF files to PR via GitHub Code Scanning API"
+
+        SARIF_COUNT=$(find sarif_downloads -name "*.sarif" | wc -l)
+        echo "Found $SARIF_COUNT SARIF files to upload"
+
+        REPO_OWNER="${GITHUB_REPOSITORY%/*}"
+        REPO_NAME="${GITHUB_REPOSITORY#*/}"
+
+        for SARIF_FILE in sarif_downloads/*.sarif; do
+          echo "Processing $SARIF_FILE"
+          
+          # 1. Gzip and base64 encode the SARIF file content into a temporary file.
+          #    This is the safest way to handle potentially very large data.
+          TEMP_BASE64_FILE=$(mktemp)
+          gzip -c "$SARIF_FILE" | base64 -w0 > "$TEMP_BASE64_FILE"
+          
+          # 2. Reconstruct the category name from the filename (for logging only, not payload)
+          CATEGORY_NAME=$(basename "$SARIF_FILE" .sarif | sed 's/_/\//g' | sed 's/\.yml:/yml:/g' | sed 's/^analyze\//\/analyze\//g')
+
+          echo "Uploading $(basename "$SARIF_FILE") with category '$CATEGORY_NAME' to PR"
+          
+          if [ ! -s "$TEMP_BASE64_FILE" ]; then # -s checks if file exists and is not empty
+            echo "Error: SARIF content for $SARIF_FILE is empty after base64 encoding or file creation failed."
+            rm -f "$TEMP_BASE64_FILE"
+            exit 1
+          fi
+
+          # 3. Construct the full JSON payload using jq
+          #    We use `--rawfile sarif_data "$TEMP_BASE64_FILE"` to read the file content
+          #    directly into the 'sarif_data' variable as a raw string.
+          JSON_PAYLOAD=$(jq -n \
+            --arg ref_val "refs/pull/${{ github.event.pull_request.number }}/merge" \
+            --arg commit_val "${{ github.sha }}" \
+            --rawfile sarif_data "$TEMP_BASE64_FILE" \
+            '{sarif: $sarif_data, ref: $ref_val, commit_sha: $commit_val}')
+          
+          # Clean up the temporary file immediately after jq has used it
+          rm -f "$TEMP_BASE64_FILE"
+
+          echo "DEBUG: JSON_PAYLOAD (sarif content redacted):"
+          # Pretty-print the JSON_PAYLOAD but replace the 'sarif' field's value with "REDACTED"
+          echo "$JSON_PAYLOAD" | jq 'if .sarif then .sarif = "REDACTED" else . end'
+          
+          if [ -z "$JSON_PAYLOAD" ]; then
+              echo "Error: JSON_PAYLOAD is empty. jq command failed to produce output."
+              exit 1
+          fi
+
+          # 4. Pipe the JSON payload to gh api --input -
+          printf "%s" "$JSON_PAYLOAD" | gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            -H "X-GitHub-Api-Version: 2022-11-28" \
+            /repos/$REPO_OWNER/$REPO_NAME/code-scanning/sarifs \
+            --input - \
+            --jq '.id'
+
+          if [ $? -eq 0 ]; then
+            echo "✓ Successfully uploaded $(basename "$SARIF_FILE")"
+          else
+            echo "✗ Failed to upload $(basename "$SARIF_FILE")"
+            exit 1
+          fi
+
+          sleep 1
+        done
+        set +x
+    
