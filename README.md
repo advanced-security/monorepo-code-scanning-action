@@ -272,9 +272,9 @@ In monorepo PR workflows, Code Scanning checks for unscanned projects may appear
 **Solution (`republish-filtered-sarif` Action):**
 This composite action provides a quick, easy, and **`projects.json`-agnostic** way to ensure a complete Code Scanning overview on PRs. It works by:
 
-1.  **Dynamically Discovering Analyses:** It queries the GitHub Code Scanning API to find all recent CodeQL analyses published to the specified `target-ref` (e.g., your `main` branch).
+1.  **Dynamically Discovering Analyses:** It queries the GitHub Code Scanning API to find all recent CodeQL analyses published to the `main` branch.
 2.  **Intelligent Exclusion:** It takes an `excluded-category` input, which should be the exact category string used in the CodeQL `analyze` step for the project currently being scanned in the PR. This allows the action to *exclude* that specific project's SARIF from being downloaded and re-uploaded.
-3.  **Latest SARIF Selection:** For all *other* projects/categories found on the `target-ref`, it selects and downloads only the *most recent* SARIF.
+3.  **Latest SARIF Selection:** For all *other* projects/categories found on the `main` branch, it selects and downloads only the *most recent* SARIF.
 4.  **Direct API Republishing:** These filtered SARIFs are then directly uploaded to the current Pull Request's commit SHA via the GitHub Code Scanning API.
 
 **Key Benefit:**
@@ -293,8 +293,7 @@ jobs:
       - name: Perform CodeQL Analysis (Backend)
         uses: github/codeql-action/analyze@v3
         with:
-          category: 'backend' # <--- This unique category string is key!
-          output: ${{ runner.temp }}/pr-analyze-sarif
+          category: 'backend' # <--- This unique category string is key!          
 
       # ... (other steps, like dependency submission) ...
 
@@ -303,8 +302,6 @@ jobs:
         uses: your-org/your-repo/.github/actions/republish-filtered-sarif@main # Update this path
         with:
           excluded-category: 'backend' # Pass the category of the project just scanned
-          target-ref: 'refs/heads/main' # Typically your default branch
-
 
 ## Limitations
 
