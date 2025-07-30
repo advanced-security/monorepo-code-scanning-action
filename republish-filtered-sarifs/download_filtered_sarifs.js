@@ -15,14 +15,20 @@ async function run(github, context, core) {
     return;
   }
 
-  // --- Configuration: Adjust this to the Git reference (branch/tag/SHA) you want to download analyses from ---
-  // Examples:
-  // - 'refs/heads/main' (for your main branch)
-  // - 'refs/heads/develop' (for a development branch)
-  // - context.ref (for the current branch/ref the workflow is running on)
-  const targetRef = 'refs/heads/main'; // <--- ADJUST THIS IF NEEDED
+  // --- Dynamically determine the default branch for downloading analyses ---
+  let targetRef;
+  try {
+    const { data: repoData } = await github.rest.repos.get({
+      owner: repo.owner,
+      repo: repo.repo,
+    });
+    targetRef = `refs/heads/${repoData.default_branch}`;
+    core.info(`Dynamically determined default branch: '${repoData.default_branch}'. Will download analyses from '${targetRef}'.`);
+  } catch (error) {
+    core.setFailed(`Failed to get default branch for ${repo.owner}/${repo.repo}: ${error.message}`);
+    return;
+  }
 
-  core.info(`Attempting to download SARIFs from '${targetRef}' for repo: ${repo.owner}/${repo.repo}`);
   core.info(`EXCLUDING SARIFs with category: '${EXCLUDED_CATEGORY}'`);
 
 
