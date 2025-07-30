@@ -1,4 +1,4 @@
-# .github/actions/republish-filtered-sarifs/action.yml
+# .github/actions/republish-sarifs/action.yml
 
 name: Download & Republish Filtered SARIFs
 description: 'Downloads Code Scanning SARIF files, excludes a specified category, uploads them as an artifact, and then republishes the remaining to the PR/target branch.'
@@ -6,12 +6,7 @@ inputs:
   excluded-category:
     description: 'The single CodeQL category string to exclude from the download and republish (e.g., /language:java;project:backend-service).'
     required: true
-    type: string
-  target-ref:
-    description: 'The Git reference (branch, tag, or SHA) from which to download analyses (e.g., refs/heads/main).'
-    required: false
-    type: string
-    default: 'refs/heads/main' # Default to main branch if not specified
+    type: string  
 
 runs:
   using: 'composite'
@@ -22,8 +17,7 @@ runs:
     - name: Run SARIF Download Script
       uses: actions/github-script@v7
       env:
-        EXCLUDED_CATEGORY_INPUT: ${{ inputs.excluded-category }}
-        TARGET_REF_INPUT: ${{ inputs.target-ref }}
+        EXCLUDED_CATEGORY_INPUT: ${{ inputs.excluded-category }}        
       with:
         script: |
           const scriptPath = `${process.env.GITHUB_ACTION_PATH}/download_filtered_sarifs.js`;
