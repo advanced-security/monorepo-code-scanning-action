@@ -264,6 +264,8 @@ To allow this, you need to give the workflow the `closed` type on the `pull_requ
 
 ## Limitations
 
+If you split a monorepo up into smaller components, CodeQL may not be able to see both the source and sink that would complete dataflow for a vulnerability in a single part of the project. To work around this, you may need to define a model pack containing data extensions defining sources for the entry points of a project.
+
 Actions can create matrix jobs with a maximum of 256 targets. This means that monorepos with more than 256 projects must be divided up into more than one workflow, until something is done to deal with this in this Action (if that is possible).
 
 The checks feature of GitHub can take a maximum of 1000 checks with the same name. That means that monorepos with more than 1000 projects cannot be scanned with them all scanned individually; so several must be grouped together to get under this 1000 threshold.
