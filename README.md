@@ -314,3 +314,44 @@ You can inject CodeQL into the build tool as such as custom command; for compile
 It will be necessary to keep track of the CodeQL category assigned to each build target, to avoid clashes.
 
 See the GitHub documentation on [Using code scanning with your existing CI system](https://docs.github.com/en/enterprise-cloud@latest/code-security/code-scanning/integrating-with-code-scanning/using-code-scanning-with-your-existing-ci-system)
+
+### Alternative SARIF Republishing: `republish-filtered-sarif` Action
+
+A new GitHub Action, `republish-filtered-sarif`, is now available to streamline Code Scanning results presentation on Pull Requests within a monorepo.
+
+**Problem Addressed:**
+In monorepo PR workflows, Code Scanning checks for unscanned projects may appear incomplete. While the existing `republish-sarif` action addresses this, it often requires maintaining a `projects.json` file to define all projects for republishing. This can be an overhead for users.
+
+**Solution (`republish-filtered-sarif` Action):**
+This composite action provides a quick, easy, and **`projects.json`-agnostic** way to ensure a complete Code Scanning overview on PRs. It works by:
+
+1.  **Dynamically Discovering Analyses:** It queries the GitHub Code Scanning API to find all recent CodeQL analyses published to the `main` branch.
+2.  **Intelligent Exclusion:** It takes an `excluded-category` input, which should be the exact category string used in the CodeQL `analyze` step for the project currently being scanned in the PR. This allows the action to *exclude* that specific project's SARIF from being downloaded and re-uploaded.
+3.  **Latest SARIF Selection:** For all *other* projects/categories found on the `main` branch, it selects and downloads only the *most recent* SARIF.
+4.  **Direct API Republishing:** These filtered SARIFs are then directly uploaded to the current Pull Request's commit SHA via the GitHub Code Scanning API.
+
+**Key Benefit:**
+This action **simplifies the republishing process by removing the need for a `projects.json` file** for this step. Users provide the CodeQL `category` value of the currently scanned project, and the action automatically handles the rest, offering a streamlined, category-based approach for comprehensive PR security insights.
+
+**Example Usage:**
+
+```yaml
+# In your monorepo workflow (e.g., for a 'backend' project)
+
+jobs:
+  analyze:
+    steps:
+      # ... (checkout, setup, CodeQL init, build steps) ...
+
+      - name: Perform CodeQL Analysis (Backend)
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: 'backend' # <--- This unique category string is key!          
+
+      # ... (other steps, like dependency submission) ...
+
+      - name: Republish other SARIFs for PR
+        if: github.event_name == 'pull_request'
+        uses: your-org/your-repo/.github/actions/republish-filtered-sarif@main # Update this path
+        with:
+          excluded-category: 'backend' # Pass the category of the project just scanned
