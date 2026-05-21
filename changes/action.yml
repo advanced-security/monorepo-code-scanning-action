@@ -34,7 +34,7 @@ runs:
   steps:
     - if: ${{ inputs.build-xml != '' || inputs.projects-json != '' || inputs.config-file != '' }}
       name: Checkout required files
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         sparse-checkout: |
           ${{ inputs.build-xml }}
@@ -43,7 +43,7 @@ runs:
         sparse-checkout-cone-mode: false
 
     - name: Install Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: '20'
 
