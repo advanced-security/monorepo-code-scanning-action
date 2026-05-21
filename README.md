@@ -212,7 +212,7 @@ Here's an example of how to use the action within your workflow:
     # Perform CodeQL scan but do not upload results (for further SARIF processing)
     - name: Perform CodeQL Analysis
       id: codeql-analyze
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{ matrix.project.language }};project:${{ matrix.project.name }}"
         upload: false
