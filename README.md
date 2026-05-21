@@ -221,7 +221,7 @@ Here's an example of how to use the action within your workflow:
     # Parse the db-locations output and get the sarif file name from the analysis
     - name: Set SARIF file name
       id: set-sarif-file-name
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         result-encoding: string
         script: |
