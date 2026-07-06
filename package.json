@@ -4,5 +4,8 @@
     "@octokit/rest": "^21.1.0",
     "xml2js": "^0.6.2",
     "yaml": "^2.8.0"
+  },
+  "overrides": {
+    "undici": "6.27.0"
   }
 }
