@@ -25,7 +25,7 @@ runs:
     # Initializes CodeQL for scanning, if required
     - name: Initialize CodeQL (build mode none/auto)
       if: matrix.project.build_mode == 'none' || matrix.project.build_mode == 'autobuild'
-      uses: github/codeql-action/init@v3
+      uses: github/codeql-action/init@v4
       with:
         languages: ${{ matrix.project.language }}
         build-mode: ${{ matrix.project.build_mode }}
@@ -63,7 +63,7 @@ runs:
     - name: Perform CodeQL Analysis
       id: codeql-analyze
       if: matrix.project.build_mode != 'other'
-      uses: github/codeql-action/analyze@v3
+      uses: github/codeql-action/analyze@v4
       with:
         category: "/language:${{ matrix.project.language }};project:${{ matrix.project.name }}"
         upload: false
@@ -104,7 +104,7 @@ runs:
     # Upload the annotated SARIF file to GitHub Code Scanning service
     - name: Upload SARIF with project tags
       if: matrix.project.build_mode != 'other'
-      uses: github/codeql-action/upload-sarif@v3
+      uses: github/codeql-action/upload-sarif@v4
       with:
         category: "/language:${{ matrix.project.language }};project:${{ matrix.project.name }}"
         sarif_file: ${{ steps.codeql-analyze.outputs.sarif-output }}/${{ matrix.project.name }}-${{ steps.set-sarif-file-name.outputs.result }}
