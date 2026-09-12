@@ -21,7 +21,7 @@ runs:
     - name: Run SARIF project annotator via github-script
       id: annotate-sarif
       #if: ${{ inputs.projects-json == '' && inputs.build-xml != '' }}
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       
       #Pass these in to env to avoid: Error: Action failed with error: Error: Input required and not supplied: project
       env:

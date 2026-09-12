@@ -21,7 +21,7 @@ runs:
   steps:
     # Download SARIF files from previous analyses (for missing categories)
     - name: Download SARIF files from target
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       if: github.event_name == 'pull_request' && ( inputs.merged-only == 'false' || github.event.pull_request.merged == true )
       env:
         projects: ${{ inputs.projects }}
@@ -36,7 +36,7 @@ runs:
 
     # Scenario 1: PR mode - upload SARIF files via GitHub API to the PR itself
     - name: Upload SARIF files to PR
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       if: github.event_name == 'pull_request' && github.event.pull_request.merged != true && hashFiles(format('{0}/*.sarif', inputs.sarif-dir)) != ''
       env:
         SARIF_MODE: 'upload'
@@ -54,7 +54,7 @@ runs:
 
     # Scenario 2: Merged mode - upload SARIF files via GitHub API to the PR target
     - name: Upload SARIF files to PR target
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       if: github.event.pull_request.merged == true && hashFiles(format('{0}/*.sarif', inputs.sarif-dir)) != ''
       env:
         SARIF_MODE: 'upload'

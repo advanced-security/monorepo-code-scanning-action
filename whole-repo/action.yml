@@ -27,7 +27,7 @@ runs:
   using: 'composite'
   steps:
     - name: Checkout required files
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         sparse-checkout: |
           ${{ inputs.build-xml }}
@@ -38,7 +38,7 @@ runs:
         sparse-checkout-cone-mode: false
 
     - name: Install Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v6
       with:
         node-version: '20'
 
@@ -51,7 +51,7 @@ runs:
     - name: Read projects JSON
       id: read-projects
       if: ${{ inputs.projects-json }}
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       env:
         filename: ${{ inputs.projects-json }}
       with:
@@ -68,7 +68,7 @@ runs:
     - name: Process projects XML into JSON
       id: build-projects
       if: ${{ inputs.projects-json == '' && inputs.build-xml != '' }}
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       env:
         filename: ${{ inputs.build-xml }}
         variables: ${{ inputs.variables }}
@@ -98,7 +98,7 @@ runs:
 
     - name: Build matrix
       id: build-matrix
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       env:
         projects: ${{ steps.read-projects.outputs.result || steps.build-projects.outputs.projects }}
         queries: ${{ inputs.queries }}

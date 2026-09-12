@@ -9,7 +9,7 @@ runs:
   using: 'composite'
   steps:
     - name: Checkout project folders to scan
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         sparse-checkout: |
           ${{ matrix.project.sparse_checkout }}
@@ -73,7 +73,7 @@ runs:
     - name: Set SARIF file name
       id: set-sarif-file-name
       if: matrix.project.build_mode != 'other'
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       with:
         result-encoding: string  # Just return string not a json
         script: |
@@ -88,7 +88,7 @@ runs:
     - name: Annotate CodeQL Alert SARIF with Project tag
       id: annotate-sarif
       if: matrix.project.build_mode != 'other'
-      uses: actions/github-script@v7
+      uses: actions/github-script@v8
       env:
         project: ${{ matrix.project.name }}
         sarif_file: ${{ steps.codeql-analyze.outputs.sarif-output }}/${{ steps.set-sarif-file-name.outputs.result }}
